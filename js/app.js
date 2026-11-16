@@ -177,12 +177,17 @@
 
   // summary coming from the 3DS app QR code
   async function startFromQR(code) {
+    $('#upload').hidden = true;
+    $('#loading').hidden = false;
     try {
       const s = await QRData.toStats(QRData.decode(code));
       showResults([s.year]);
       renderStats(s);
     } catch (e) {
+      $('#upload').hidden = false;
       showError(e.message);
+    } finally {
+      $('#loading').hidden = true;
     }
   }
 
@@ -326,24 +331,51 @@
     );
   }
 
-  async function downloadCard() {
-    if (!window.html2canvas) return showError('No se pudo cargar html2canvas (¿sin conexión?).');
+  async function cardCanvas() {
+    if (!window.html2canvas) throw new Error('No se pudo cargar html2canvas (¿sin conexión?).');
     await document.fonts.ready;
     const card = $('#share-card');
     card.classList.add('capturing');
-    let canvas;
     try {
-      canvas = await html2canvas(card, { scale: 3, backgroundColor: null });
+      return await html2canvas(card, { scale: 3, backgroundColor: null });
     } finally {
       card.classList.remove('capturing');
     }
-    el('a', { href: canvas.toDataURL('image/png'), download: `3ds-wrapped-${$('#year').value}.png` }).click();
   }
+
+  const fileName = () => `3ds-wrapped-${$('#year').value}.png`;
+
+  async function downloadCard() {
+    try {
+      const canvas = await cardCanvas();
+      el('a', { href: canvas.toDataURL('image/png'), download: fileName() }).click();
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  // native share sheet on phones (WhatsApp, Instagram…)
+  async function shareCard() {
+    try {
+      const canvas = await cardCanvas();
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      const file = new File([blob], fileName(), { type: 'image/png' });
+      await navigator.share({ files: [file], title: '3DS Wrapped', text: `Mi año ${$('#year').value} en la 3DS` });
+    } catch (e) {
+      if (e.name !== 'AbortError') downloadCard();
+    }
+  }
+
+  try {
+    const probe = new File([new Blob(['x'], { type: 'image/png' })], 'x.png', { type: 'image/png' });
+    $('#share').hidden = !(navigator.canShare && navigator.canShare({ files: [probe] }));
+  } catch { /* no share support */ }
 
   $('#file').addEventListener('change', e => e.target.files[0] && loadFile(e.target.files[0]));
   $('#demo').addEventListener('click', () => start(SampleData.generate()));
   $('#year').addEventListener('change', e => render(e.target.value));
   $('#download').addEventListener('click', downloadCard);
+  $('#share').addEventListener('click', shareCard);
   $('#reset').addEventListener('click', () => {
     $('#results').hidden = true;
     $('#upload').hidden = false;

@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>3DS Wrapped</title>
   <meta name="description" content="Tu año en la 3DS: juegos más jugados, horas, rachas y una tarjeta para compartir.">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta property="og:title" content="3DS Wrapped">
+  <meta property="og:description" content="Tu año en la 3DS: juegos más jugados, horas, rachas y una tarjeta para compartir.">
+  <meta property="og:image" content="https://p0tzz.github.io/3ds-wrapped/img/icon-180.png">
+  <link rel="icon" type="image/svg+xml" href="img/logo.svg">
+  <link rel="apple-touch-icon" href="img/icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +19,7 @@
 <body>
   <nav class="topbar">
     <div class="wrap topbar-in">
-      <a class="brand" href="./"><span class="dot"></span>3DS Wrapped</a>
+      <a class="brand" href="./"><img src="img/logo.svg" alt="" width="32" height="32">3DS Wrapped</a>
       <a class="pill ghost" href="https://github.com/P0tzz/3ds-wrapped">GitHub</a>
     </div>
   </nav>
@@ -21,6 +27,7 @@
   <main class="wrap">
     <section id="upload">
       <header class="intro">
+        <img class="intro-logo" src="img/logo.svg" alt="" width="88" height="88">
         <p class="eyebrow">Tu año en la consola</p>
         <h1>¿A qué has jugado este año?</h1>
         <p class="sub">Escanea el QR de la <a href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew">app para 3DS</a> o sube el <code>pld.dat</code> del Registro de actividad.</p>
@@ -42,7 +49,37 @@
         <p id="status" class="status" role="status" hidden></p>
         <p id="error" class="error" role="alert" hidden></p>
       </div>
+
+      <section class="how">
+        <h2>Cómo funciona</h2>
+        <ol class="steps">
+          <li class="step">
+            <span class="num">1</span>
+            <h3>Abre la app en tu 3DS</h3>
+            <p>Cópiala a la tarjeta SD y ábrela desde el Homebrew Launcher. Solo lee el Registro de actividad, no cambia nada.</p>
+          </li>
+          <li class="step">
+            <span class="num">2</span>
+            <h3>Escanea el QR</h3>
+            <p>La consola calcula tu resumen y lo muestra como código QR. Elige el año con ◀ ▶.</p>
+          </li>
+          <li class="step">
+            <span class="num">3</span>
+            <h3>Mira tu año</h3>
+            <p>Se abre esta web con tus juegos, horas y rachas. Los datos van en el enlace: no se guardan en ningún servidor.</p>
+          </li>
+        </ol>
+        <div class="how-actions">
+          <a class="pill" href="https://github.com/P0tzz/3ds-wrapped/releases/latest">Descargar la app</a>
+          <a class="pill ghost" href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew#instalaci%C3%B3n">Cómo instalarla</a>
+        </div>
+      </section>
     </section>
+
+    <div id="loading" class="loading" hidden>
+      <img src="img/logo.svg" alt="" width="72" height="72">
+      <p>Cargando tu año…</p>
+    </div>
 
     <section id="results" hidden>
       <div class="toolbar">
@@ -84,13 +121,22 @@
       <section class="section share">
         <h2 class="reveal">Compártelo</h2>
         <div id="share-card" class="share-card reveal"></div>
-        <button id="download" class="pill">Descargar imagen</button>
+        <div class="share-actions">
+          <button id="share" class="pill" hidden>Compartir</button>
+          <button id="download" class="pill ghost">Descargar imagen</button>
+        </div>
       </section>
     </section>
   </main>
 
   <footer class="wrap">
-    Proyecto de fans, no afiliado a Nintendo. Portadas de <a href="https://www.gametdb.com/">GameTDB</a>.
+    <div class="foot-brand"><img src="img/logo.svg" alt="" width="28" height="28">3DS Wrapped</div>
+    <nav class="foot-links">
+      <a href="https://github.com/P0tzz/3ds-wrapped/releases/latest">Descargar la app</a>
+      <a href="https://github.com/P0tzz/3ds-wrapped">Código</a>
+      <a href="https://github.com/P0tzz/3ds-wrapped/blob/main/docs/FORMATO.md">Subir datos desde el PC</a>
+    </nav>
+    <p>Proyecto de fans, no afiliado a Nintendo. Portadas de <a href="https://www.gametdb.com/">GameTDB</a>.</p>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
