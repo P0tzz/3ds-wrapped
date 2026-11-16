@@ -1,7 +1,3 @@
-/*
- * Cálculo de estadísticas a partir de la lista de sesiones.
- * No toca el DOM: solo recibe datos y devuelve datos (fácil de probar).
- */
 (function (W) {
   const DAY = 24 * 60 * 60 * 1000;
 
@@ -68,13 +64,10 @@
 
     const games = [...byGame.values()].sort((a, b) => b.minutes - a.minutes);
 
-    // "El olvidado": de tu top 10, el que hace más tiempo que no abres
+    // top 10 game with the oldest last session
     const forgotten = games.slice(0, 10).reduce((acc, g) => (!acc || g.last < acc.last ? g : acc), null);
-
-    // Mes favorito
     const bestMonth = byMonth.indexOf(Math.max(...byMonth));
 
-    // Día con más horas
     let bestDay = null;
     for (const [k, m] of byDay) if (!bestDay || m > bestDay.minutes) bestDay = { date: new Date(k + 'T12:00:00'), minutes: m };
 

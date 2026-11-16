@@ -1,6 +1,3 @@
-/*
- * Interfaz: carga de archivos, gráficas, mapa de calor y tarjeta para compartir.
- */
 (function () {
   const $ = sel => document.querySelector(sel);
   const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -9,7 +6,6 @@
   let sessions = [];
   const charts = {};
 
-  // ---------- Utilidades ----------
   const hours = min => Math.round(min / 60).toLocaleString('es-ES');
   const fmtDuration = min => (min >= 60 ? `${Math.floor(min / 60)} h ${Math.round(min % 60)} min` : `${Math.round(min)} min`);
   const fmtDate = d => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
@@ -17,7 +13,7 @@
   function el(tag, attrs = {}, children = []) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
-      if (k === 'text') node.textContent = v; // textContent: nunca interpretamos HTML del archivo del usuario
+      if (k === 'text') node.textContent = v;
       else node.setAttribute(k, v);
     }
     for (const c of [].concat(children)) node.append(c);
@@ -34,7 +30,6 @@
     box.hidden = !msg;
   }
 
-  // ---------- Carga ----------
   async function loadFile(file) {
     showError('');
     try {
@@ -55,7 +50,6 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ---------- Render ----------
   function render(year) {
     const s = Stats.compute(sessions, Number(year));
     renderNumbers(s);
@@ -132,7 +126,7 @@
   function renderHeatmap(s) {
     const cells = [];
     const jan1 = new Date(s.year, 0, 1);
-    const offset = (jan1.getDay() + 6) % 7; // semanas empiezan en lunes
+    const offset = (jan1.getDay() + 6) % 7; // monday first
     for (let i = 0; i < offset; i++) cells.push(el('i', { class: 'empty' }));
 
     const max = Math.max(1, ...s.byDay.values());
@@ -187,7 +181,6 @@
     a.click();
   }
 
-  // ---------- Eventos ----------
   $('#file').addEventListener('change', e => e.target.files[0] && loadFile(e.target.files[0]));
   $('#demo').addEventListener('click', () => start(SampleData.generate()));
   $('#year').addEventListener('change', e => render(e.target.value));

@@ -1,10 +1,6 @@
-/*
- * Genera datos de ejemplo realistas (y siempre iguales gracias a una semilla)
- * para poder probar la web sin tener una consola a mano.
- * Los nombres de los juegos son inventados.
- */
+// fake data for the demo button (made-up game names)
 (function (W) {
-  // Generador pseudoaleatorio con semilla (mulberry32)
+  // mulberry32
   function rng(seed) {
     return function () {
       seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
@@ -28,7 +24,6 @@
   ];
 
   function pickGame(r, monthBias) {
-    // Cada mes favorece un poco a un juego distinto (como cuando te "enganchas")
     const total = GAMES.reduce((s, g, i) => s + g.weight + (i === monthBias ? 12 : 0), 0);
     let x = r() * total;
     for (let i = 0; i < GAMES.length; i++) {
@@ -53,7 +48,6 @@
         const count = 1 + Math.floor(r() * (weekend ? 3 : 2));
         const bias = (d.getMonth() * 3 + year) % GAMES.length;
         for (let k = 0; k < count; k++) {
-          // Horas típicas: tarde/noche, a veces madrugada
           const hour = r() < 0.12 ? Math.floor(r() * 3) : 15 + Math.floor(r() * 9);
           const when = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour % 24, Math.floor(r() * 60));
           const minutes = Math.round(10 + r() * r() * 150);

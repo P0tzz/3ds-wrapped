@@ -1,19 +1,10 @@
-/*
- * Lectores de archivos. Todos devuelven una lista de sesiones con esta forma:
- *   { game: string, start: Date, minutes: number }
- *
- * Formatos soportados (ver docs/FORMATO.md):
- *   - JSON
- *   - CSV
- *   - pld.dat (registro de actividad de la consola) -> EN DESARROLLO
- */
+// file -> [{ game, start: Date, minutes }]
 (function (W) {
   function pick(obj, keys) {
     for (const k of keys) if (obj[k] !== undefined && obj[k] !== '') return obj[k];
     return undefined;
   }
 
-  // Convierte un objeto "suelto" (de JSON o CSV) en una sesión válida
   function toSession(raw, index) {
     const game = pick(raw, ['game', 'juego', 'title', 'titulo', 'título']);
     const startRaw = pick(raw, ['start', 'inicio', 'date', 'fecha']);
@@ -21,8 +12,7 @@
 
     const where = `fila ${index + 1}`;
     if (!game) throw new Error(`Falta el nombre del juego (${where}).`);
-    // Una fecha sin hora ("2025-03-14") se tomaría como medianoche UTC y podría
-    // caer en el día anterior según tu zona horaria: la fijamos a mediodía local.
+    // date-only strings parse as UTC midnight, use local noon instead
     const startText = String(startRaw).trim();
     const start = new Date(/^\d{4}-\d{2}-\d{2}$/.test(startText) ? startText + 'T12:00:00' : startText);
     if (isNaN(start)) throw new Error(`Fecha no válida "${startRaw}" (${where}).`);
@@ -40,7 +30,6 @@
     return list.map(toSession);
   }
 
-  // Divide una línea CSV respetando comillas: "Juego, con coma",2025-01-01,30
   function splitCSVLine(line, sep) {
     const out = [];
     let cur = '', quoted = false;
@@ -71,16 +60,9 @@
     });
   }
 
-  /*
-   * TODO: leer directamente el pld.dat del registro de actividad.
-   * El formato está documentado (parcialmente) en https://www.3dbrew.org/wiki/Activity_Log
-   * ¡Es una gran primera contribución! Ver CONTRIBUTING en el README.
-   */
-  function parsePld(/* arrayBuffer */) {
-    throw new Error(
-      'La lectura de pld.dat todavía está en desarrollo. ' +
-      'Por ahora, convierte tus datos a JSON o CSV (ver docs/FORMATO.md).'
-    );
+  // TODO: https://www.3dbrew.org/wiki/Activity_Log
+  function parsePld() {
+    throw new Error('pld.dat todavía no está soportado, usa JSON o CSV.');
   }
 
   async function parseFile(file) {
