@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/img/web-resumen.png" width="720" alt="Resumen del año en la web: horas, juegos, días y gráficas">
+  <img src="https://github.com/user-attachments/assets/66d3002d-e8c5-42cc-9f0a-304a47794c64" width="820" alt="Resumen del año en la web: juego del año, horas, juegos, días y biblioteca">
 </p>
 
 ## Cómo funciona
@@ -47,22 +47,17 @@ Más detalles, controles y solución de problemas: [guía de la app](homebrew/RE
 
 ## Capturas
 
-En las capturas cada juego aparece con sus iniciales. En la web se ve con su portada:
-**[abre la demo](https://p0tzz.github.io/3ds-wrapped/#demo)** para verlo con datos de ejemplo.
-
 <table>
   <tr>
     <td width="50%"><img src="docs/img/web-inicio.png" alt="Página de inicio"></td>
     <td width="50%"><img src="docs/img/web-graficas.png" alt="Gráficas por mes, por hora y calendario"></td>
   </tr>
-  <tr><img width="2506" height="1235" alt="image" src="https://github.com/user-attachments/assets/66d3002d-e8c5-42cc-9f0a-304a47794c64" />
-
+  <tr>
     <td align="center">Inicio</td>
     <td align="center">Por mes, por hora y día a día</td>
-  </tr><img width="1118" height="449" alt="image" src="https://github.com/user-attachments/assets/903cf0ab-bff4-4cce-81a9-9a0ee647d92f" />
-
+  </tr>
   <tr>
-    <td width="50%"><img src="docs/img/web-destacados.png" alt="Destacados del año"></td>
+    <td width="50%"><img src="https://github.com/user-attachments/assets/903cf0ab-bff4-4cce-81a9-9a0ee647d92f" alt="Destacados del año"></td>
     <td width="50%" align="center"><img src="docs/img/web-tarjeta.png" width="300" alt="Tarjeta para compartir"></td>
   </tr>
   <tr>
