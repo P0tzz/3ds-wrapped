@@ -23,7 +23,7 @@
     T('creatures', /pok[eé]mon|yo-?kai|digimon|nintendogs|monster/i, ['#ffd23f', '#ff5c8a', '#3ec7ff', '#7cff6b'], 'confetti',
       ['Algo se mueve entre la hierba…', '¡Un encuentro que duró todo el año!'], setupCreatures, runCreatures),
     T('cozy', /animal crossing|tomodachi|harvest moon|story of seasons|stardew|style savvy|cooking|happy home/i, ['#ffb7c5', '#ffd59e', '#b5e48c', '#a0e7e5'], 'leaf',
-      [() => `Son las ${clockText()}…`, 'y siempre acababas volviendo a tu rincón.'], setupCozy, wait(1500)),
+      [() => tr('Son las {h}…', { h: clockText() }), 'y siempre acababas volviendo a tu rincón.'], setupCozy, wait(1500)),
     T('platform', /mario|kirby|donkey kong|yoshi|wario|sonic|rayman|shovel knight|mega ?man|crash/i, ['#ffd23f', '#ff8a00', '#ffffff'], 'star',
       ['Salto…', 'tras salto, tras salto.'], setupPlatform, runPlatform),
     T('legend', /ocarina/i, ['#ffd86b', '#fff3c4', '#7fd4ff'], 'twinkle',
@@ -35,6 +35,10 @@
     ['Este año jugaste mucho…', 'pero hubo un juego que destacó.'], setupDefault, wait(600));
 
   const pickTheme = name => THEMES.find(t => t.test.test(name || '')) || DEFAULT;
+
+  // translation (js/i18n.js); falls back to Spanish if it is not loaded
+  const tr = (s, vars) => (W.I18N ? W.I18N.t(s, vars) : s.replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : '')));
+  const loc = () => (W.I18N ? W.I18N.locale() : 'es-ES');
 
   function clockText() {
     const n = new Date();
@@ -112,7 +116,7 @@
 
   async function runCountdown(S) {
     const card = S.scene.querySelector('.mm-card');
-    const DAYS = [['· I ·', 'Primer día', '72 horas'], ['· II ·', 'Segundo día', '48 horas'], ['· III ·', 'Último día', '24 horas']];
+    const DAYS = [['· I ·', tr('Primer día'), tr('{n} horas', { n: 72 })], ['· II ·', tr('Segundo día'), tr('{n} horas', { n: 48 })], ['· III ·', tr('Último día'), tr('{n} horas', { n: 24 })]];
     for (let i = 0; i < DAYS.length && !S.skipped(); i++) {
       S.root.classList.add('mm-cut');          // quick cut to black
       await S.wait(170);
@@ -192,7 +196,8 @@
     // 1) a day passes over the field, counting the days actually played
     const days = (S.stats && S.stats.daysPlayed) || 100;
     const year = (S.stats && S.stats.year) || '';
-    const counter = layer(S, 'lg-count clear', `<b>0</b><span>amaneceres jugando${year ? ' en ' + year : ''}</span>`);
+    const counter = layer(S, 'lg-count clear', '<b>0</b><span></span>');
+    counter.lastChild.textContent = year ? tr('amaneceres jugando en {y}', { y: year }) : tr('amaneceres jugando');
     S.root.classList.add('lg-cycle');
     S.fx.setRate(0.6);
     await S.animate(2900, p => { counter.firstChild.textContent = Math.round(days * (1 - Math.pow(1 - p, 3))); });
@@ -505,7 +510,7 @@
     $('.fx-spot').classList.remove('on');
     $('.fx-scene').replaceChildren();
     $('.fx-cover').replaceChildren(helpers.cover(g));
-    $('.fx-kicker').textContent = theme.id === 'legend' ? `La leyenda de tu ${s.year}` : `Tu juego de ${s.year}`;
+    $('.fx-kicker').textContent = theme.id === 'legend' ? tr('La leyenda de tu {y}', { y: s.year }) : tr('Tu juego de {y}', { y: s.year });
     // title word by word
     $('.fx-title').replaceChildren(...g.game.split(/\s+/).flatMap((word, i) => {
       const sp = D.createElement('span');
@@ -513,8 +518,8 @@
       sp.style.setProperty('--w', `${i * 70}ms`);
       return i ? [D.createTextNode(' '), sp] : [sp];  // real spaces between the animated words
     }));
-    $('.fx-hours').textContent = '0 horas';
-    $('.fx-sub').textContent = `${Math.round((g.minutes / Math.max(1, s.totalMinutes)) * 100)} % de tu tiempo este año`;
+    $('.fx-hours').textContent = tr('{n} horas', { n: 0 });
+    $('.fx-sub').textContent = tr('{p} % de tu tiempo este año', { p: Math.round((g.minutes / Math.max(1, s.totalMinutes)) * 100) });
     root.hidden = false;
     D.body.classList.add('fx-open');
 
@@ -553,7 +558,7 @@
       for (const raw of theme.lines) {
         if (skipped) break;
         const el = $('.fx-line');
-        el.textContent = typeof raw === 'function' ? raw() : raw;
+        el.textContent = typeof raw === 'function' ? raw() : tr(raw);
         el.classList.add('on');
         await S.wait(1650);
         el.classList.remove('on');
@@ -585,7 +590,7 @@
   }
 
   function countHours(node, target, instant) {
-    const fmt = v => `${Math.round(v).toLocaleString('es-ES')} horas`;
+    const fmt = v => tr('{n} horas', { n: Math.round(v).toLocaleString(loc()) });
     if (instant) { node.textContent = fmt(target); return; }
     const t0 = performance.now(), dur = 1500;
     const step = now => {

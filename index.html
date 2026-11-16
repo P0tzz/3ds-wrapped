@@ -4,23 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>3DS Wrapped</title>
-  <meta name="description" content="Tu año en la 3DS: juegos más jugados, horas, rachas y una tarjeta para compartir.">
+  <meta name="description" content="Tu año en la 3DS: juegos más jugados, horas, rachas y una tarjeta para compartir. / Your year on the 3DS: most played games, hours, streaks and a card to share.">
   <meta name="theme-color" content="#0a0a0c">
   <meta property="og:title" content="3DS Wrapped">
-  <meta property="og:description" content="Tu año en la 3DS: juegos más jugados, horas, rachas y una tarjeta para compartir.">
+  <meta property="og:description" content="Tu año en la 3DS / Your year on the 3DS">
   <meta property="og:image" content="https://p0tzz.github.io/3ds-wrapped/img/icon-180.png">
   <link rel="icon" type="image/svg+xml" href="img/logo.svg">
   <link rel="apple-touch-icon" href="img/icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=20261116i">
+  <link rel="stylesheet" href="css/styles.css?v=20261117b">
 </head>
 <body>
   <nav class="topbar">
     <div class="wrap topbar-in">
       <a class="brand" href="./"><img src="img/logo.svg" alt="" width="32" height="32">3DS Wrapped</a>
-      <a class="pill ghost" href="https://github.com/P0tzz/3ds-wrapped">GitHub</a>
+      <div class="topbar-right">
+        <div class="lang" role="group" aria-label="Idioma / Language">
+          <button type="button" class="lang-btn" data-lang="es">ES</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+        <a class="pill ghost" href="https://github.com/P0tzz/3ds-wrapped">GitHub</a>
+      </div>
     </div>
   </nav>
 
@@ -28,9 +34,9 @@
     <section id="upload">
       <header class="intro">
         <img class="intro-logo" src="img/logo.svg" alt="" width="88" height="88">
-        <p class="eyebrow">Tu año en la consola</p>
-        <h1>¿A qué has jugado este año?</h1>
-        <p class="sub">Escanea el QR de la <a href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew">app para 3DS</a> o sube el <code>pld.dat</code> del Registro de actividad.</p>
+        <p class="eyebrow" data-i18n>Tu año en la consola</p>
+        <h1 data-i18n>¿A qué has jugado este año?</h1>
+        <p class="sub"><span data-i18n>Escanea el QR de la</span> <a href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew" data-i18n>app para 3DS</a> <span data-i18n>o sube el</span> <code>pld.dat</code> <span data-i18n>del Registro de actividad.</span></p>
       </header>
 
       <div class="panel upload-panel">
@@ -39,52 +45,52 @@
           <span class="drop-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/></svg>
           </span>
-          <strong>Arrastra tu archivo aquí</strong>
-          <span>o haz clic para elegirlo · pld.dat, .json, .csv</span>
+          <strong data-i18n>Arrastra tu archivo aquí</strong>
+          <span data-i18n>o haz clic para elegirlo · pld.dat, .json, .csv</span>
         </label>
         <div class="upload-actions">
-          <button id="demo" class="pill">Ver un ejemplo</button>
-          <span class="fine">Todo se procesa en tu navegador.</span>
+          <button id="demo" class="pill" data-i18n>Ver un ejemplo</button>
+          <span class="fine" data-i18n>Todo se procesa en tu navegador.</span>
         </div>
         <p id="status" class="status" role="status" hidden></p>
         <p id="error" class="error" role="alert" hidden></p>
       </div>
 
       <section class="how">
-        <h2>Cómo funciona</h2>
+        <h2 data-i18n>Cómo funciona</h2>
         <ol class="steps">
           <li class="step">
             <span class="num">1</span>
-            <h3>Abre la app en tu 3DS</h3>
-            <p>Cópiala a la tarjeta SD y ábrela desde el Homebrew Launcher. Solo lee el Registro de actividad, no cambia nada.</p>
+            <h3 data-i18n>Abre la app en tu 3DS</h3>
+            <p data-i18n>Cópiala a la tarjeta SD y ábrela desde el Homebrew Launcher. Solo lee el Registro de actividad, no cambia nada.</p>
           </li>
           <li class="step">
             <span class="num">2</span>
-            <h3>Escanea el QR</h3>
-            <p>La consola calcula tu resumen y lo muestra como código QR. Elige el año con ◀ ▶.</p>
+            <h3 data-i18n>Escanea el QR</h3>
+            <p data-i18n>La consola calcula tu resumen y lo muestra como código QR. Elige el año con ◀ ▶.</p>
           </li>
           <li class="step">
             <span class="num">3</span>
-            <h3>Mira tu año</h3>
-            <p>Se abre esta web con tus juegos, horas y rachas. Los datos van en el enlace: no se guardan en ningún servidor.</p>
+            <h3 data-i18n>Mira tu año</h3>
+            <p data-i18n>Se abre esta web con tus juegos, horas y rachas. Los datos van en el enlace: no se guardan en ningún servidor.</p>
           </li>
         </ol>
         <div class="how-actions">
-          <a class="pill" href="https://github.com/P0tzz/3ds-wrapped/releases/latest">Descargar la app</a>
-          <a class="pill ghost" href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew#instalaci%C3%B3n">Cómo instalarla</a>
+          <a class="pill" href="https://github.com/P0tzz/3ds-wrapped/releases/latest" data-i18n>Descargar la app</a>
+          <a class="pill ghost" href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew#readme" data-i18n>Cómo instalarla</a>
         </div>
       </section>
     </section>
 
     <div id="loading" class="loading" hidden>
       <img src="img/logo.svg" alt="" width="72" height="72">
-      <p>Cargando tu año…</p>
+      <p data-i18n>Cargando tu año…</p>
     </div>
 
     <section id="results" hidden>
       <div class="toolbar">
-        <label class="year">Año <select id="year"></select></label>
-        <button id="reset" class="pill ghost">Cargar otro</button>
+        <label class="year"><span data-i18n>Año</span> <select id="year"></select></label>
+        <button id="reset" class="pill ghost" data-i18n>Cargar otro</button>
       </div>
 
       <article id="hero" class="hero"></article>
@@ -92,12 +98,12 @@
       <div id="big-numbers" class="tiles"></div>
 
       <section class="section">
-        <h2 class="reveal">Tu biblioteca</h2>
+        <h2 class="reveal" data-i18n>Tu biblioteca</h2>
         <div id="top" class="library"></div>
       </section>
 
       <section class="section">
-        <h2 class="reveal">Tu ritmo</h2>
+        <h2 class="reveal" data-i18n>Tu ritmo</h2>
         <div class="rhythm">
           <article id="card-month" class="panel chart-card reveal"></article>
           <article id="card-week" class="panel chart-card reveal" style="--d:100ms"></article>
@@ -108,25 +114,40 @@
       <section class="section panel reveal">
         <div id="cal-head" class="cal-head"></div>
         <div class="heatmap-scroll"><div id="heatmap" class="heatmap"></div></div>
-        <div class="legend">Menos <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> Más</div>
+        <div class="legend"><span data-i18n>Menos</span> <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> <span data-i18n>Más</span></div>
+      </section>
+
+      <section id="compare-section" class="section panel reveal compare" hidden>
+        <div id="compare"></div>
       </section>
 
       <section class="section">
-        <h2 class="reveal">Destacados</h2>
+        <h2 class="reveal" data-i18n>Medallas</h2>
+        <div id="medals-head" class="reveal"></div>
+        <div id="medals" class="medals"></div>
+      </section>
+
+      <section class="section">
+        <h2 class="reveal" data-i18n>Destacados</h2>
         <div id="awards" class="awards"></div>
         <div id="highlights" class="chips"></div>
       </section>
 
+      <section id="life-section" class="section" hidden>
+        <h2 class="reveal" data-i18n>Toda tu 3DS</h2>
+        <div id="life" class="life"></div>
+      </section>
+
       <section class="section share">
-        <h2 class="reveal">Compártelo</h2>
-        <div class="format-switch reveal" role="group" aria-label="Formato de la tarjeta">
-          <button type="button" class="fmt is-on" data-format="post">Publicación</button>
-          <button type="button" class="fmt" data-format="story">Historia</button>
+        <h2 class="reveal" data-i18n>Compártelo</h2>
+        <div class="format-switch reveal" role="group">
+          <button type="button" class="fmt is-on" data-format="post" data-i18n>Publicación</button>
+          <button type="button" class="fmt" data-format="story" data-i18n>Historia</button>
         </div>
         <div id="share-card" class="share-card reveal"></div>
         <div class="share-actions">
-          <button id="share" class="pill" hidden>Compartir</button>
-          <button id="download" class="pill ghost">Descargar imagen</button>
+          <button id="share" class="pill" hidden data-i18n>Compartir</button>
+          <button id="download" class="pill ghost" data-i18n>Descargar imagen</button>
         </div>
       </section>
     </section>
@@ -146,19 +167,19 @@
         <div class="fx-hours"></div>
         <div class="fx-sub"></div>
       </div>
-      <p class="fx-hint">Toca para ver tu año</p>
+      <p class="fx-hint" data-i18n>Toca para ver tu año</p>
     </div>
-    <button type="button" class="fx-skip">Saltar</button>
+    <button type="button" class="fx-skip" data-i18n>Saltar</button>
   </div>
 
   <div id="picker" class="picker" hidden>
     <div class="picker-box panel" role="dialog" aria-modal="true" aria-labelledby="picker-title">
       <div class="picker-head">
-        <h3 id="picker-title">¿Qué juego de DS es?</h3>
-        <button id="picker-close" class="pill ghost" type="button">Cerrar</button>
+        <h3 id="picker-title" data-i18n>¿Qué juego de DS es?</h3>
+        <button id="picker-close" class="pill ghost" type="button" data-i18n>Cerrar</button>
       </div>
-      <p class="picker-hint">Los juegos abiertos desde TWiLight Menu++ o un flashcart se guardan sin código, así que la consola no sabe cuál era. Elige el tuyo; se recuerda solo en este navegador.</p>
-      <input id="picker-q" type="search" placeholder="Busca tu juego…" autocomplete="off">
+      <p class="picker-hint" data-i18n>Los juegos abiertos desde TWiLight Menu++ o un flashcart se guardan sin código, así que la consola no sabe cuál era. Elige el tuyo; se recuerda solo en este navegador.</p>
+      <input id="picker-q" type="search" placeholder="Busca tu juego…" data-i18n-placeholder="Busca tu juego…" autocomplete="off">
       <ul id="picker-list" class="picker-list"></ul>
     </div>
   </div>
@@ -166,20 +187,21 @@
   <footer class="wrap">
     <div class="foot-brand"><img src="img/logo.svg" alt="" width="28" height="28">3DS Wrapped</div>
     <nav class="foot-links">
-      <a href="https://github.com/P0tzz/3ds-wrapped/releases/latest">Descargar la app</a>
-      <a href="https://github.com/P0tzz/3ds-wrapped">Código</a>
-      <a href="https://github.com/P0tzz/3ds-wrapped/blob/main/docs/FORMATO.md">Subir datos desde el PC</a>
+      <a href="https://github.com/P0tzz/3ds-wrapped/releases/latest" data-i18n>Descargar la app</a>
+      <a href="https://github.com/P0tzz/3ds-wrapped" data-i18n>Código</a>
+      <a href="https://github.com/P0tzz/3ds-wrapped/blob/main/docs/FORMATO.md" data-i18n>Subir datos desde el PC</a>
     </nav>
-    <p>Proyecto de fans, no afiliado a Nintendo. Portadas de <a href="https://www.gametdb.com/">GameTDB</a>.</p>
+    <p><span data-i18n>Proyecto de fans, no afiliado a Nintendo. Portadas de</span> <a href="https://www.gametdb.com/">GameTDB</a>.</p>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="js/sample-data.js?v=20261116i"></script>
-  <script src="js/titledb.js?v=20261116i"></script>
-  <script src="js/parsers.js?v=20261116i"></script>
-  <script src="js/qrdata.js?v=20261116i"></script>
-  <script src="js/stats.js?v=20261116i"></script>
-  <script src="js/intro.js?v=20261116i"></script>
-  <script src="js/app.js?v=20261116i"></script>
+  <script src="js/i18n.js?v=20261117b"></script>
+  <script src="js/sample-data.js?v=20261117b"></script>
+  <script src="js/titledb.js?v=20261117b"></script>
+  <script src="js/parsers.js?v=20261117b"></script>
+  <script src="js/qrdata.js?v=20261117b"></script>
+  <script src="js/stats.js?v=20261117b"></script>
+  <script src="js/intro.js?v=20261117b"></script>
+  <script src="js/app.js?v=20261117b"></script>
 </body>
 </html>
