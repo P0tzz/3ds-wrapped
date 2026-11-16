@@ -55,10 +55,12 @@ En las capturas cada juego aparece con sus iniciales. En la web se ve con su por
     <td width="50%"><img src="docs/img/web-inicio.png" alt="Página de inicio"></td>
     <td width="50%"><img src="docs/img/web-graficas.png" alt="Gráficas por mes, por hora y calendario"></td>
   </tr>
-  <tr>
+  <tr><img width="2506" height="1235" alt="image" src="https://github.com/user-attachments/assets/66d3002d-e8c5-42cc-9f0a-304a47794c64" />
+
     <td align="center">Inicio</td>
     <td align="center">Por mes, por hora y día a día</td>
-  </tr>
+  </tr><img width="1118" height="449" alt="image" src="https://github.com/user-attachments/assets/903cf0ab-bff4-4cce-81a9-9a0ee647d92f" />
+
   <tr>
     <td width="50%"><img src="docs/img/web-destacados.png" alt="Destacados del año"></td>
     <td width="50%" align="center"><img src="docs/img/web-tarjeta.png" width="300" alt="Tarjeta para compartir"></td>
