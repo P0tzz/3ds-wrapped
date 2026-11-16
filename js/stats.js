@@ -92,5 +92,5 @@
     };
   }
 
-  W.Stats = { compute, years, dayKey };
+  W.Stats = { compute, years, dayKey, personality };
 })(window);

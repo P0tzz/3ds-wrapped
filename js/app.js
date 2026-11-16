@@ -44,19 +44,38 @@
     }
   }
 
-  function start(data) {
-    sessions = data;
-    const ys = Stats.years(sessions);
+  function showResults(years) {
     const select = $('#year');
-    select.replaceChildren(...ys.map(y => el('option', { value: y, text: y })));
+    select.replaceChildren(...years.map(y => el('option', { value: y, text: y })));
+    select.disabled = years.length < 2;
     $('#upload').hidden = true;
     $('#results').hidden = false;
-    render(ys[0]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function start(data) {
+    sessions = data;
+    const ys = Stats.years(sessions);
+    showResults(ys);
+    render(ys[0]);
+  }
+
+  // summary coming from the 3DS app QR code
+  async function startFromQR(code) {
+    try {
+      const s = await QRData.toStats(QRData.decode(code));
+      showResults([s.year]);
+      renderStats(s);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
   function render(year) {
-    const s = Stats.compute(sessions, Number(year));
+    renderStats(Stats.compute(sessions, Number(year)));
+  }
+
+  function renderStats(s) {
     renderNumbers(s);
     renderCharts(s);
     renderHeatmap(s);
@@ -194,7 +213,11 @@
     $('#results').hidden = true;
     $('#upload').hidden = false;
     $('#file').value = '';
+    if (location.hash) history.replaceState(null, '', location.pathname);
   });
+
+  const code = QRData.fromHash(location.hash);
+  if (code) startFromQR(code);
 
   const dz = $('#dropzone');
   ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
