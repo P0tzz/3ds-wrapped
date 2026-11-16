@@ -5,6 +5,7 @@ mis-datos*
 # homebrew
 homebrew/build/
 *.3dsx
+*.cia
 *.smdh
 *.elf
 *.map

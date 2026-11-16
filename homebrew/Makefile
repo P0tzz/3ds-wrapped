@@ -52,7 +52,7 @@ endif
 
 export _3DSXFLAGS += --smdh=$(CURDIR)/$(TARGET).smdh
 
-.PHONY: all clean
+.PHONY: all clean cia
 
 all: $(BUILD)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
@@ -60,8 +60,15 @@ all: $(BUILD)
 $(BUILD):
 	@mkdir -p $@
 
+# installable .cia (needs bannertool and makerom in the PATH)
+cia: all
+	bannertool makebanner -i banner.png -a banner.wav -o $(BUILD)/banner.bnr
+	bannertool makesmdh -s "$(APP_TITLE)" -l "$(APP_DESCRIPTION)" -p "$(APP_AUTHOR)" -i $(APP_ICON) -o $(BUILD)/icon.icn
+	makerom -f cia -o $(TARGET).cia -elf $(TARGET).elf -rsf app.rsf -target t -exefslogo \
+		-banner $(BUILD)/banner.bnr -icon $(BUILD)/icon.icn
+
 clean:
-	@rm -rf $(BUILD) $(TARGET).3dsx $(TARGET).smdh $(TARGET).elf
+	@rm -rf $(BUILD) $(TARGET).3dsx $(TARGET).smdh $(TARGET).elf $(TARGET).cia
 
 else
 

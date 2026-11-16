@@ -14,12 +14,25 @@ jobs:
     container: devkitpro/devkitarm:latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install bannertool and makerom
+        run: |
+          apt-get update -qq && apt-get install -y -qq --no-install-recommends unzip curl ca-certificates > /dev/null
+          mkdir -p /tmp/tools && cd /tmp/tools
+          curl -sSL -o bannertool.zip https://github.com/diasurgical/bannertool/releases/download/1.2.0/bannertool.zip
+          curl -sSL -o makerom.zip https://github.com/3DSGuy/Project_CTR/releases/download/makerom-v0.19.0/makerom-v0.19.0-ubuntu_x86_64.zip
+          unzip -q -o bannertool.zip -d bannertool && unzip -q -o makerom.zip -d makerom
+          install -m 755 "$(find bannertool -path '*linux-x86_64*' -name bannertool -type f | head -n1)" /usr/local/bin/bannertool
+          install -m 755 "$(find makerom -name makerom -type f | head -n1)" /usr/local/bin/makerom
+          bannertool 2>&1 | head -n 2 || true
+          makerom -version 2>&1 | head -n 2 || true
       - name: Build
-        run: make -C homebrew
+        run: make -C homebrew cia
       - uses: actions/upload-artifact@v4
         with:
           name: 3ds-wrapped
-          path: homebrew/3ds-wrapped.3dsx
+          path: |
+            homebrew/3ds-wrapped.3dsx
+            homebrew/3ds-wrapped.cia
 
   test:
     runs-on: ubuntu-latest
