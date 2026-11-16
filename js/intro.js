@@ -8,8 +8,8 @@
   const T = (id, test, colors, fx, lines, setup, run) => ({ id, test, colors, fx, lines, setup, run });
 
   const THEMES = [
-    T('countdown', /majora/i, ['#ffb347', '#ff6a3d', '#c45cff'], 'ember',
-      ['Te quedan 72 horas.', 'Y aun así no lo soltaste.'], setupCountdown, runCountdown),
+    T('countdown', /majora/i, ['#ffb35c', '#ff6a3d', '#f3c58a'], 'ash',
+      ['Todo tiene un final…'], setupCountdown, runCountdown),
     T('haunted', /luigi.?s mansion|ghost|fantasma/i, ['#a8ffbf', '#5fe08f', '#eafff0'], 'dust',
       ['Se apagan las luces…', 'No estabas solo ahí dentro.'], setupHaunted, runHaunted),
     T('race', /kart|racing|carrera|f-zero|ridge racer|asphalt|burnout/i, ['#ff4040', '#ffd23f', '#ffffff'], 'speed',
@@ -54,35 +54,81 @@
     node.classList.add(cls);
   }
 
-  // Majora: a plain moon grows, three days run out
-  function setupCountdown(S) {
-    layer(S, 'fx-redsky');
-    layer(S, 'fx-moon');
-  }
-  async function runCountdown(S) {
-    const c = layer(S, 'fx-dayclock clear',
-      '<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" class="ring"/>' +
-      '<circle cx="60" cy="60" r="54" class="prog"/><line x1="60" y1="60" x2="60" y2="18" class="hand"/>' +
-      '<circle cx="60" cy="60" r="4" class="pin"/></svg><div class="day"></div><div class="left"></div>');
-    const day = c.querySelector('.day'), left = c.querySelector('.left'), prog = c.querySelector('.prog');
-    const C = 2 * Math.PI * 54;
-    prog.style.strokeDasharray = C;
-    for (let d = 1; d <= 3 && !S.skipped(); d++) {
-      S.root.dataset.day = d;
-      day.textContent = `Día ${d}`;
-      restartClass(day, 'pop');
-      S.fx.setRate(0.8 + d * 0.9);
-      if (d === 3) S.root.classList.add('quake');
-      await S.animate(1250, p => {
-        const h = 72 - 24 * (d - 1) - 24 * p;
-        left.textContent = `${Math.max(0, Math.ceil(h))} h`;
-        prog.style.strokeDashoffset = C * (1 - h / 72);
-      });
+  // countdown: a short film. A town at dusk, a sphere that sinks a little more each day,
+  // the windows go out, title cards between cuts, and a white-out before the reveal.
+  function townSilhouette() {
+    const r = Math.random;
+    let d = 'M0 200', x = 0, tower = null;
+    const windows = [];
+    while (x < 1200) {
+      let w = 34 + r() * 56, h = 34 + r() * 62;
+      const isTower = !tower && x + w > 560;
+      if (isTower) { w = 76; h = 168; tower = { cx: x + w / 2, cy: 200 - h + 34 }; }
+      d += ` V${(200 - h).toFixed(0)}`;
+      if (isTower) {
+        d += ` H${(x + 20).toFixed(0)} L${(x + w / 2).toFixed(0)} ${(200 - h - 52).toFixed(0)} L${(x + w - 20).toFixed(0)} ${(200 - h).toFixed(0)} H${(x + w).toFixed(0)}`;
+      } else if (r() < 0.55) {
+        d += ` L${(x + w / 2).toFixed(0)} ${(200 - h - 14 - r() * 16).toFixed(0)} L${(x + w).toFixed(0)} ${(200 - h).toFixed(0)}`;
+      } else {
+        d += ` H${(x + w).toFixed(0)}`;
+      }
+      if (!isTower) {
+        for (let k = 0; k < 2; k++) {
+          if (r() < 0.7) windows.push(`<rect x="${(x + 8 + r() * (w - 20)).toFixed(0)}" y="${(200 - h + 10 + r() * (h - 24)).toFixed(0)}" width="5" height="7" rx="1"/>`);
+        }
+      }
+      x += w;
     }
-    left.textContent = '0 h';
-    S.root.classList.add('flash');
-    await S.wait(180);
-    S.root.classList.remove('quake');
+    d += ' V200 Z';
+    return { d, tower, windows: windows.join('') };
+  }
+
+  function setupCountdown(S) {
+    const town = townSilhouette();
+    layer(S, 'mm-world',
+      '<div class="mm-sky"></div><div class="mm-tint"></div>' +
+      '<div class="mm-orb"><svg viewBox="0 0 200 200"><defs>' +
+      '<radialGradient id="mmGlow" cx="42%" cy="38%" r="65%"><stop offset="0" stop-color="#ffe9c2"/><stop offset=".42" stop-color="#e8955a"/>' +
+      '<stop offset=".78" stop-color="#8a3d24"/><stop offset="1" stop-color="#2e0f0a"/></radialGradient>' +
+      '<filter id="mmSurface" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".028" numOctaves="5" seed="11"/>' +
+      '<feColorMatrix values="0 0 0 0 .22  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.35"/><feComposite in2="SourceGraphic" operator="in"/></filter>' +
+      '<radialGradient id="mmShade" cx="35%" cy="30%" r="75%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".65"/></radialGradient>' +
+      '</defs><circle cx="100" cy="100" r="97" fill="url(#mmGlow)"/>' +
+      '<circle cx="100" cy="100" r="97" fill="#000" filter="url(#mmSurface)"/>' +
+      '<circle cx="100" cy="100" r="97" fill="url(#mmShade)"/></svg></div>' +
+      '<div class="mm-haze"></div>' +
+      `<svg class="mm-town" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice"><path class="town" d="${town.d}"/>` +
+      `<g class="win">${town.windows}</g><circle class="bell" cx="${town.tower.cx.toFixed(0)}" cy="${town.tower.cy.toFixed(0)}" r="9"/></svg>`);
+    layer(S, 'mm-vignette');
+    layer(S, 'mm-grain');
+    layer(S, 'mm-bars', '<i></i><i></i>');
+    layer(S, 'mm-card', '<span class="k"></span><b></b><span class="h"></span>');
+    layer(S, 'mm-dip');
+    layer(S, 'mm-bloom');
+    requestAnimationFrame(() => S.root.classList.add('mm-on'));
+  }
+
+  async function runCountdown(S) {
+    const card = S.scene.querySelector('.mm-card');
+    const DAYS = [['· I ·', 'Primer día', '72 horas'], ['· II ·', 'Segundo día', '48 horas'], ['· III ·', 'Último día', '24 horas']];
+    for (let i = 0; i < DAYS.length && !S.skipped(); i++) {
+      S.root.classList.add('mm-cut');          // quick cut to black
+      await S.wait(170);
+      S.root.dataset.day = i + 1;
+      card.querySelector('.k').textContent = DAYS[i][0];
+      card.querySelector('b').textContent = DAYS[i][1];
+      card.querySelector('.h').textContent = `— ${DAYS[i][2]} —`;
+      S.root.classList.remove('mm-cut');
+      restartClass(card, 'show');
+      S.fx.setRate(0.6 + i * 1.3);
+      await S.wait(1800);
+    }
+    // the end: the sphere fills the sky and everything goes white
+    S.root.classList.add('mm-end');
+    S.fx.setRate(5);
+    await S.wait(1500);
+    S.root.classList.add('mm-white');
+    await S.wait(1300);
   }
 
   // Zelda: night over the hills, then sunrise and rising notes
@@ -251,7 +297,7 @@
   }
 
   // ---------- particles ----------
-  const RATE = { ember: 2.2, spark: 1.4, confetti: 1, leaf: 0.35, speed: 2.4, dust: 0.7, star: 0.8, feather: 0.45, twinkle: 3 };
+  const RATE = { ember: 2.2, ash: 1.6, spark: 1.4, confetti: 1, leaf: 0.35, speed: 2.4, dust: 0.7, star: 0.8, feather: 0.45, twinkle: 3 };
 
   function particles(canvas, theme) {
     const ctx = canvas.getContext('2d');
@@ -278,6 +324,8 @@
       if (t === 'twinkle') { p.y = rnd(0, h * 0.7); p.vx = 0; p.vy = 0; p.s = rnd(0.6, 1.8); p.decay = rnd(0.002, 0.004); p.c = '#ffffff'; }
       if (t === 'star') { p.s = rnd(3, 6); }
       if (t === 'ember' || t === 'spark') { p.vy = rnd(-2.4, -0.8); p.decay = rnd(0.0018, 0.004); }
+      // ash: carried sideways by the wind, rising slowly
+      if (t === 'ash') { p.x = rnd(-w * 0.3, w * 0.9); p.y = rnd(h * 0.3, h + 10); p.vx = rnd(0.6, 2.2); p.vy = rnd(-0.9, -0.15); p.s = rnd(0.8, 2.4); p.decay = rnd(0.002, 0.005); }
       if (burst) {
         const a = rnd(0, 6.28), sp = rnd(3, 12);
         Object.assign(p, { x: w / 2, y: h * 0.42, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, decay: rnd(0.009, 0.018), burst: true, c: pick(theme.colors) });
@@ -332,6 +380,7 @@
         if (p.burst) { p.vx *= 0.96; p.vy = p.vy * 0.96 + 0.12; }
         if (theme.fx === 'leaf' || theme.fx === 'feather') p.x += Math.sin(p.y / 40 + p.ph) * 0.9;
         if (theme.fx === 'ember') p.x += Math.sin(p.y / 25) * 0.4;
+        if (theme.fx === 'ash') p.y += Math.sin((p.x + tick) / 60 + p.ph) * 0.35;
         p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= p.decay;
         if (p.life <= 0 || p.y > h + 40 || p.y < -60 || p.x < -200 || p.x > w + 200) { list.splice(i, 1); continue; }
         draw(p);
@@ -372,11 +421,11 @@
     $('.fx-cover').replaceChildren(helpers.cover(g));
     $('.fx-kicker').textContent = `Tu juego de ${s.year}`;
     // title word by word
-    $('.fx-title').replaceChildren(...g.game.split(/\s+/).map((word, i) => {
+    $('.fx-title').replaceChildren(...g.game.split(/\s+/).flatMap((word, i) => {
       const sp = D.createElement('span');
-      sp.textContent = word + ' ';
+      sp.textContent = word;
       sp.style.setProperty('--w', `${i * 70}ms`);
-      return sp;
+      return i ? [D.createTextNode(' '), sp] : [sp];  // real spaces between the animated words
     }));
     $('.fx-hours').textContent = '0 horas';
     $('.fx-sub').textContent = `${Math.round((g.minutes / Math.max(1, s.totalMinutes)) * 100)} % de tu tiempo este año`;
@@ -427,7 +476,7 @@
       if (!skipped && theme.run) await theme.run(S);
 
       root.classList.add('revealed');
-      if (['battle', 'race', 'creatures', 'countdown'].includes(theme.id)) restartClass(root, 'shake');
+      if (['battle', 'race', 'creatures'].includes(theme.id)) restartClass(root, 'shake');
       fx.burst(theme.fx === 'speed' ? 50 : 140);
       fx.setRate(1.6);
       countHours($('.fx-hours'), Math.round(g.minutes / 60), skipped);
