@@ -476,7 +476,7 @@ body.fx-open { overflow: hidden; }
 /* per-theme entrances of the cover */
 .theme-platform.revealed .fx-cover { animation: drop 1s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes drop { 0% { transform: translateY(-120vh); } 70% { transform: translateY(14px); } 100% { transform: none; } }
-.theme-adventure.revealed .fx-reveal::before,
+.theme-dawn.revealed .fx-reveal::before,
 .theme-default.revealed .fx-reveal::before {
   content: ""; position: absolute; left: 50%; top: -60vh; width: 160px; height: 120vh; transform: translateX(-50%);
   background: linear-gradient(180deg, transparent, rgba(255, 233, 160, .35), transparent); filter: blur(18px);
@@ -490,6 +490,175 @@ body.fx-open { overflow: hidden; }
 @keyframes shake { 10%, 90% { transform: translate(-2px, 1px); } 20%, 80% { transform: translate(4px, -2px); } 30%, 50%, 70% { transform: translate(-7px, 3px); } 40%, 60% { transform: translate(7px, -3px); } }
 @keyframes flash { from { opacity: .85; } to { opacity: 0; } }
 .theme-cozy .fx-title { text-shadow: 0 0 24px rgba(255, 183, 197, .8); }
+
+/* ---------- intro scenes ---------- */
+.fx-scene { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.intro-fx canvas { z-index: 1; }
+.fx-stage, .fx-skip { z-index: 3; }
+.fx-layer { position: absolute; inset: 0; pointer-events: none; }
+.revealed .fx-layer.clear { opacity: 0; transition: opacity .35s ease; }
+.theme-dawn { background: linear-gradient(180deg, #060a22 0%, #10183d 60%, #1d2350 100%); }
+.theme-sky { background: linear-gradient(180deg, #2f7fd6 0%, #74b8f2 60%, #cfe9ff 100%); }
+.theme-tactics { background: radial-gradient(circle at 50% 40%, #13294a, #070d18 75%); }
+.theme-dawn.revealed .fx-reveal::before { background: linear-gradient(180deg, transparent, rgba(255, 233, 160, .35), transparent); }
+
+/* reveal: title word by word, spinning ring of light around the cover */
+.fx-title span { display: inline-block; opacity: 0; transform: translateY(18px); }
+.revealed .fx-title span { opacity: 1; transform: none; transition: opacity .5s ease calc(.35s + var(--w)), transform .7s cubic-bezier(.22, 1, .36, 1) calc(.35s + var(--w)); }
+.fx-cover { position: relative; overflow: visible; }
+.fx-cover > * { border-radius: 14px; overflow: hidden; position: relative; z-index: 1; }
+.fx-cover::before {
+  content: ""; position: absolute; inset: -14px; border-radius: 24px; z-index: 0; opacity: 0;
+  background: conic-gradient(from 0deg, var(--fx1), var(--fx2), var(--fx3), var(--fx1));
+  filter: blur(14px); animation: spinring 4s linear infinite;
+}
+.revealed .fx-cover::before { opacity: .9; transition: opacity 1s ease .3s; }
+@keyframes spinring { to { transform: rotate(1turn); } }
+
+/* countdown (Majora): plain moon, red sky, three days */
+.fx-redsky { background: linear-gradient(180deg, transparent 30%, rgba(255, 90, 40, .55)); opacity: 0; transition: opacity 1.2s ease; }
+[data-day="1"] .fx-redsky { opacity: .3; } [data-day="2"] .fx-redsky { opacity: .6; } [data-day="3"] .fx-redsky { opacity: 1; }
+.fx-moon {
+  inset: auto; left: 50%; top: -14vmin; width: 46vmin; height: 46vmin; border-radius: 50%;
+  transform: translateX(-50%) scale(var(--moon, .45)); transform-origin: 50% 0;
+  background:
+    radial-gradient(circle at 30% 38%, rgba(90, 40, 20, .45) 0 7%, transparent 8%),
+    radial-gradient(circle at 64% 30%, rgba(90, 40, 20, .35) 0 5%, transparent 6%),
+    radial-gradient(circle at 58% 66%, rgba(90, 40, 20, .4) 0 9%, transparent 10%),
+    radial-gradient(circle at 26% 70%, rgba(90, 40, 20, .3) 0 4%, transparent 5%),
+    radial-gradient(circle at 35% 30%, #ffe2b0, #e8a060 45%, #9a4f2c 78%, #5a2a18);
+  box-shadow: 0 0 80px rgba(255, 140, 60, .55), 0 0 200px rgba(255, 90, 40, .35);
+  transition: transform 1.25s cubic-bezier(.4, 0, .2, 1);
+}
+[data-day="1"] .fx-moon { --moon: .7; } [data-day="2"] .fx-moon { --moon: 1.05; } [data-day="3"] .fx-moon { --moon: 1.55; }
+.revealed .fx-moon { --moon: 1.7; opacity: .35; transition: transform 1s ease, opacity 1s ease; }
+.fx-dayclock { inset: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(62vmin, 300px); aspect-ratio: 1; display: grid; place-items: center; }
+.fx-dayclock svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.fx-dayclock .ring { fill: rgba(20, 6, 26, .55); stroke: rgba(255, 255, 255, .15); stroke-width: 3; }
+.fx-dayclock .prog { fill: none; stroke: var(--fx1); stroke-width: 5; stroke-linecap: round; filter: drop-shadow(0 0 6px var(--fx2)); }
+.fx-dayclock .hand { stroke: #fff; stroke-width: 3; stroke-linecap: round; transform-origin: 60px 60px; animation: spinring 1.4s linear infinite; }
+[data-day="2"] .fx-dayclock .hand { animation-duration: .8s; } [data-day="3"] .fx-dayclock .hand { animation-duration: .35s; }
+.fx-dayclock .pin { fill: #fff; }
+.fx-dayclock .day { position: absolute; bottom: 104%; font-size: clamp(30px, 7vmin, 48px); font-weight: 800; white-space: nowrap; text-shadow: 0 0 20px var(--fx2), 0 2px 12px rgba(0, 0, 0, .6); }
+.fx-dayclock .day.pop { animation: daypop .6s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes daypop { from { transform: scale(1.6); opacity: 0; } }
+.fx-dayclock .left { position: relative; z-index: 1; font-size: clamp(34px, 9vmin, 60px); font-weight: 800; color: var(--fx1); font-variant-numeric: tabular-nums;
+  background: rgba(20, 6, 26, .75); padding: 2px 14px; border-radius: 14px; text-shadow: 0 0 18px var(--fx2); }
+.fx-dayclock .hand { opacity: .55; }
+.quake { animation: quake .12s linear infinite; }
+@keyframes quake { 25% { transform: translate(2px, -1px); } 50% { transform: translate(-2px, 2px); } 75% { transform: translate(1px, 1px); } }
+.flash::after { content: ""; position: absolute; inset: 0; z-index: 4; background: #fff; animation: flash .6s ease-out forwards; pointer-events: none; }
+
+/* dawn (Zelda): night, hills, sunrise, notes */
+.fx-daylight { background: linear-gradient(180deg, #3f6fb5 0%, #f4a96a 62%, #ffd28a 100%); opacity: 0; transition: opacity 2.6s ease; }
+.sunrise .fx-daylight { opacity: .9; }
+.fx-sun { inset: auto; left: 50%; bottom: 8%; width: 30vmin; height: 30vmin; margin-left: -15vmin; border-radius: 50%;
+  background: radial-gradient(circle, #fff6d6, #ffd36b 55%, rgba(255, 200, 90, 0) 72%); transform: translateY(40vmin); transition: transform 2.8s cubic-bezier(.2, .8, .2, 1); }
+.sunrise .fx-sun { transform: translateY(0); }
+.fx-hills { inset: auto 0 0 0; height: 34vh; }
+.fx-hills svg { width: 100%; height: 100%; display: block; }
+.fx-hills .h1 { fill: #0d1430; transition: fill 2.6s ease; } .fx-hills .h2 { fill: #070b1d; transition: fill 2.6s ease; }
+.sunrise .fx-hills .h1 { fill: #2b3a4a; } .sunrise .fx-hills .h2 { fill: #1a2433; }
+.sunrise canvas { opacity: .35; transition: opacity 2.5s ease; }
+.fx-note { inset: auto; bottom: 22vh; font-size: clamp(26px, 5vmin, 42px); color: #fff3c4; text-shadow: 0 0 14px #ffd36b; animation: note 2.6s ease-out forwards; }
+@keyframes note { from { opacity: 0; transform: translate(0, 20px) scale(.6); } 20% { opacity: 1; } to { opacity: 0; transform: translate(var(--sway), -45vh) scale(1.1) rotate(12deg); } }
+
+/* haunted: mist + lightning */
+.fx-mist { background: radial-gradient(ellipse 60% 30% at 30% 80%, rgba(170, 255, 200, .12), transparent 70%); animation: mist 9s ease-in-out infinite alternate; }
+.fx-mist.b { background: radial-gradient(ellipse 50% 25% at 75% 70%, rgba(170, 255, 200, .1), transparent 70%); animation-duration: 12s; animation-direction: alternate-reverse; }
+@keyframes mist { to { transform: translateX(8vw) scale(1.15); } }
+.lightning::before { content: ""; position: absolute; inset: 0; z-index: 2; background: #e6fff0; pointer-events: none; animation: bolt .6s ease-out forwards; }
+@keyframes bolt { 0% { opacity: 0; } 8% { opacity: .9; } 16% { opacity: .1; } 26% { opacity: .75; } 100% { opacity: 0; } }
+
+/* race: lights + chequered flag */
+.fx-lights.fx-layer { inset: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; }
+.fx-flag {
+  inset: -10% auto -10% 0; width: 70vw; transform: translateX(-80vw) skewX(-14deg);
+  background: repeating-conic-gradient(#fff 0 25%, #111 0 50%) 0 0 / 9vmin 9vmin;
+  box-shadow: 0 0 60px rgba(255, 255, 255, .4); animation: flag .7s cubic-bezier(.5, 0, .5, 1) forwards;
+}
+@keyframes flag { to { transform: translateX(130vw) skewX(-14deg); } }
+
+/* tactics: perspective board and cursor */
+.fx-grid {
+  inset: auto; left: 50%; top: 54%; display: grid; grid-template-columns: repeat(7, 9vmin); grid-template-rows: repeat(5, 9vmin); gap: 4px;
+  transform: translate(-50%, -50%) perspective(900px) rotateX(52deg);
+}
+.fx-grid i { background: rgba(127, 209, 255, .12); border: 1px solid rgba(127, 209, 255, .35); border-radius: 4px; opacity: 0; animation: tile .45s ease var(--d) forwards; }
+@keyframes tile { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+.fx-grid i.sel { background: rgba(255, 209, 102, .55); border-color: #ffd166; box-shadow: 0 0 30px #ffd166; }
+.fx-grid .cursor {
+  position: absolute; width: 9vmin; height: 9vmin; border: 3px solid #ffd166; border-radius: 6px;
+  left: calc(var(--c, 0) * (9vmin + 4px)); top: calc(var(--r, 4) * (9vmin + 4px));
+  transition: left .2s ease, top .2s ease; box-shadow: 0 0 18px #ffd166; animation: blink .5s steps(2) infinite;
+}
+.fx-grid .cursor.lock { animation: none; transform: scale(1.12); }
+@keyframes blink { 50% { opacity: .4; } }
+
+/* sky: clouds rushing down = flying up */
+.fx-cloud {
+  inset: auto; top: 110%; width: var(--w); height: calc(var(--w) * .45); border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 60%, rgba(255, 255, 255, .95), rgba(255, 255, 255, 0) 70%);
+  animation: cloud 7s linear infinite;
+}
+@keyframes cloud { from { transform: translateY(0); } to { transform: translateY(-160vh); } }
+.soar .fx-cloud { animation-duration: 1.6s !important; }
+.theme-sky .fx-line, .theme-sky .fx-title { text-shadow: 0 2px 20px rgba(20, 60, 120, .7); }
+
+/* battle: crossing slashes */
+.fx-slash { inset: auto; left: -20%; top: 50%; width: 140%; height: 10px; border-radius: 10px;
+  background: linear-gradient(90deg, transparent, #fff, var(--fx2), transparent); box-shadow: 0 0 40px var(--fx1);
+  transform: rotate(-24deg) scaleX(0); animation: slash .45s cubic-bezier(.2, .8, .2, 1) forwards; }
+.fx-slash.b { transform: rotate(24deg) scaleX(0); animation-name: slash2; }
+@keyframes slash { 60% { transform: rotate(-24deg) scaleX(1); opacity: 1; } to { transform: rotate(-24deg) scaleX(1); opacity: 0; } }
+@keyframes slash2 { 60% { transform: rotate(24deg) scaleX(1); opacity: 1; } to { transform: rotate(24deg) scaleX(1); opacity: 0; } }
+.jolt { animation: shake .3s cubic-bezier(.36, .07, .19, .97); }
+
+/* creatures: tall grass, "!" and bar transition */
+.fx-grass { inset: auto 0 0 0; height: 30vh; }
+.fx-grass svg { width: 100%; height: 100%; display: block; }
+.fx-grass path { fill: none; stroke-width: 9; stroke-linecap: round; transform-origin: bottom; transform-box: fill-box; animation: sway 2.4s ease-in-out infinite alternate; }
+.fx-grass path:nth-child(3n) { animation-duration: 1.9s; }
+.rustle .fx-grass path:nth-child(n + 28):nth-child(-n + 42) { animation: rustle .14s ease-in-out infinite alternate; }
+@keyframes sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes rustle { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+.fx-alert { inset: auto; left: 50%; top: 40%; transform: translateX(-50%); font-size: clamp(60px, 14vmin, 110px); font-weight: 800; color: #fff;
+  text-shadow: 0 0 30px var(--fx1); animation: alert .45s cubic-bezier(.3, 1.8, .5, 1); }
+@keyframes alert { from { transform: translateX(-50%) scale(0); } }
+.fx-wipe { display: grid; grid-template-rows: repeat(8, 1fr); }
+.fx-wipe i { background: #05060a; transform: translateX(-101%); animation: barin .32s ease-in var(--d) forwards; }
+.fx-wipe i:nth-child(even) { transform: translateX(101%); }
+@keyframes barin { to { transform: none; } }
+.revealed .fx-wipe i { animation: barout .4s ease-out var(--d) forwards; transform: none; }
+.revealed .fx-wipe i:nth-child(even) { animation-name: barout2; }
+@keyframes barout { to { transform: translateX(101%); } }
+@keyframes barout2 { to { transform: translateX(-101%); } }
+
+/* cozy: sunset and the viewer's clock */
+.fx-sunset { background: radial-gradient(ellipse 80% 50% at 50% 100%, rgba(255, 180, 120, .35), transparent 70%); }
+.fx-cozyclock { inset: auto; left: 50%; top: 9vh; width: 70px; height: 70px; margin-left: -35px; opacity: .9; }
+.fx-cozyclock svg { width: 100%; height: 100%; }
+.fx-cozyclock circle:first-child { fill: rgba(255, 255, 255, .12); stroke: #ffd59e; stroke-width: 3; }
+.fx-cozyclock line { stroke: #fff; stroke-width: 4; stroke-linecap: round; transform-origin: 50px 50px; }
+.fx-cozyclock .mm { stroke-width: 3; }
+.fx-cozyclock .ss { stroke: #ffb7c5; stroke-width: 1.5; animation: sec 60s steps(60) infinite; transform: rotate(var(--s0)); }
+@keyframes sec { from { transform: rotate(var(--s0)); } to { transform: rotate(calc(var(--s0) + 360deg)); } }
+.fx-cozyclock circle:last-child { fill: #fff; }
+
+/* platform: ground + pops */
+.fx-ground { inset: auto 0 0 0; height: 14vh;
+  background: linear-gradient(180deg, #4caf50 0 18%, #8d5a2b 18%), repeating-linear-gradient(90deg, rgba(0, 0, 0, .15) 0 2px, transparent 2px 8vmin);
+  background-blend-mode: multiply; box-shadow: inset 0 6px 0 #7bd96b; }
+.fx-pop { inset: auto; font-size: clamp(26px, 6vmin, 44px); font-weight: 800; color: #fff; -webkit-text-stroke: 2px #ff8a00;
+  text-shadow: 0 4px 0 #b35c00; animation: pop .9s cubic-bezier(.3, 1.7, .5, 1) forwards; }
+@keyframes pop { 0% { transform: scale(0) rotate(-10deg); } 30% { transform: scale(1.15) rotate(4deg); } 60% { transform: scale(1); opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
+
+/* default: northern lights */
+.fx-aurora { filter: blur(40px); opacity: .55; mix-blend-mode: screen; animation: aurora2 8s ease-in-out infinite alternate; }
+.fx-aurora.a { background: radial-gradient(ellipse 50% 20% at 30% 30%, #00ffa3, transparent 70%); }
+.fx-aurora.b { background: radial-gradient(ellipse 45% 18% at 70% 25%, #3ea6ff, transparent 70%); animation-duration: 10s; }
+.fx-aurora.c { background: radial-gradient(ellipse 40% 16% at 50% 45%, #b388ff, transparent 70%); animation-duration: 12s; animation-direction: alternate-reverse; }
+@keyframes aurora2 { to { transform: translate(6vw, 4vh) skewX(-8deg) scale(1.15); } }
 
 .replay-intro {
   margin-top: 16px; background: rgba(255, 255, 255, .12); color: #fff; border: 1px solid rgba(255, 255, 255, .25);

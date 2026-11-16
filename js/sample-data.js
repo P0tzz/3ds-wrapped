@@ -12,7 +12,8 @@
 
   // code = product code, used for the cover art
   const GAMES = [
-    { name: 'Pokémon X', code: 'EKJA', weight: 10 },
+    { name: "The Legend of Zelda: Majora's Mask 3D", code: 'AJRE', weight: 14 },
+    { name: 'Pokémon X', code: 'EKJA', weight: 6 },
     { name: 'Mario Kart 7', code: 'AMKE', weight: 8 },
     { name: 'Animal Crossing: New Leaf', code: 'EGDE', weight: 7 },
     { name: 'The Legend of Zelda: A Link Between Worlds', code: 'BZLE', weight: 6 },
@@ -20,7 +21,6 @@
     { name: 'The Legend of Zelda: Ocarina of Time 3D', code: 'AQEE', weight: 4 },
     { name: 'Fire Emblem Awakening', code: 'AFEE', weight: 3 },
     { name: "Luigi's Mansion: Dark Moon", code: 'AGGE', weight: 3 },
-    { name: "The Legend of Zelda: Majora's Mask 3D", code: 'AJRE', weight: 2 },
     { name: 'Kid Icarus: Uprising', code: 'AKDE', weight: 1 },
   ];
 
