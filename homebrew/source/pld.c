@@ -1,12 +1,14 @@
 #include "pld.h"
 
-#include <3ds.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define DAY  86400
 #define HOUR 3600
+
+#ifdef __3DS__
+#include <3ds.h>
 
 // Activity Log system save ids, indexed by CFG region (JPN USA EUR AUS CHN KOR TWN)
 static const u32 SAVE_IDS[] = {0x00020202, 0x00020212, 0x00020222, 0x00020222, 0x00020262, 0x00020272, 0x00020282};
@@ -68,6 +70,7 @@ u8 *pld_load(const char **source) {
     free(buf);
     return NULL;
 }
+#endif
 
 static int cmp_chunk(const void *a, const void *b) {
     const Chunk *x = a, *y = b;

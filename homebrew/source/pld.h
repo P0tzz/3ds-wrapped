@@ -1,7 +1,17 @@
 #pragma once
 
-#include <3ds/types.h>
 #include <stdbool.h>
+
+#ifdef __3DS__
+#include <3ds/types.h>
+#else
+// host build (tests)
+#include <stdint.h>
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+#endif
 
 #define PLD_SIZE        806160
 #define PLD_LOG_OFFSET  0x10
@@ -54,7 +64,9 @@ typedef struct {
 
 // reads pld.dat from the Activity Log system save, or from the SD card as a fallback.
 // returns a malloc'd buffer of PLD_SIZE bytes or NULL. `source` describes where it came from.
+#ifdef __3DS__
 u8 *pld_load(const char **source);
+#endif
 
 // valid hourly entries sorted by time. returns count, *out is malloc'd.
 int pld_chunks(const u8 *buf, Chunk **out);
