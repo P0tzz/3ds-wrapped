@@ -100,8 +100,19 @@ static bool read_twl_name(u32 index, u8 l) {
 }
 
 // SMDH of an installed title (homebrew that never made it into the cache)
-static bool installed_name(u64 tid, u8 l) {
-    static u8 smdh[0x36C0];
+#define SMDH_SIZE        0x36C0
+#define SMDH_LARGE_ICON  0x24C0
+#define IDB_LARGE_ICON   0x24A0  // 0x20 header + 16 x 0x200 titles + 0x480 small icon
+#define ICON_BYTES       0x1200  // 48x48 RGB565
+
+static u8 smdh[SMDH_SIZE];
+static u64 smdhTid;
+static bool smdhOk;
+
+static bool read_installed_smdh(u64 tid) {
+    if (smdhTid == tid) return smdhOk;
+    smdhTid = tid;
+    smdhOk = false;
     const FS_MediaType media[] = {MEDIATYPE_SD, MEDIATYPE_NAND};
     for (int m = 0; m < 2; m++) {
         u32 archPath[4] = {(u32)tid, (u32)(tid >> 32), media[m], 0};
@@ -114,13 +125,43 @@ static bool installed_name(u64 tid, u8 l) {
         u32 read = 0;
         Result res = FSFILE_Read(h, &read, 0, smdh, sizeof(smdh));
         FSFILE_Close(h);
-        if (R_FAILED(res) || read < 0x8 + 16 * 0x200 || memcmp(smdh, "SMDH", 4)) continue;
-        u16 utf16[SHORT_NAME_CHARS + 1] = {0};
-        for (int k = 0; k < 2; k++) {
-            u8 lang_ = k == 0 ? l : 1;
-            memcpy(utf16, smdh + 0x8 + lang_ * 0x200, SHORT_NAME_CHARS * 2);
-            if (utf16_name(utf16)) return true;
+        if (R_SUCCEEDED(res) && read >= SMDH_LARGE_ICON + ICON_BYTES && !memcmp(smdh, "SMDH", 4)) {
+            smdhOk = true;
+            break;
         }
+    }
+    return smdhOk;
+}
+
+static bool installed_name(u64 tid, u8 l) {
+    if (!read_installed_smdh(tid)) return false;
+    u16 utf16[SHORT_NAME_CHARS + 1] = {0};
+    for (int k = 0; k < 2; k++) {
+        u8 lang_ = k == 0 ? l : 1;
+        memcpy(utf16, smdh + 0x8 + lang_ * 0x200, SHORT_NAME_CHARS * 2);
+        if (utf16_name(utf16)) return true;
+    }
+    return false;
+}
+
+static bool any_pixel(const u16 *p) {
+    for (int i = 0; i < 48 * 48; i++) if (p[i]) return true;
+    return false;
+}
+
+bool names_icon(u64 tid, u16 *out) {
+    if (ready) {
+        for (u32 i = 0; i < IDB_COUNT; i++) {
+            if (tids[i] != tid) continue;
+            u32 read = 0;
+            if (R_SUCCEEDED(FSFILE_Read(idb, &read, (u64)i * IDB_ENTRY_SIZE + IDB_LARGE_ICON, out, ICON_BYTES)) &&
+                read == ICON_BYTES && any_pixel(out))
+                return true;
+        }
+    }
+    if (!is_twl(tid) && read_installed_smdh(tid)) {
+        memcpy(out, smdh + SMDH_LARGE_ICON, ICON_BYTES);
+        return any_pixel(out);
     }
     return false;
 }

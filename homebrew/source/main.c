@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <sys/stat.h>
 #include <time.h>
 
@@ -59,8 +60,15 @@ typedef struct {
     char hours[16];
     float ratio;
 } TopRow;
-static TopRow topRows[3];
+static TopRow topRows[5];
 static int topCount;
+
+// slideshow before the QR
+enum { S_INTRO, S_HOURS, S_GOTY, S_TOP5, S_PROFILE, S_STREAK, S_LIFE, S_QR, S_COUNT };
+static int slide = S_INTRO;
+static float slideAnim = 1.0f;
+static int slideDir2 = 1;
+static float clockT;  // seconds since start, for idle motion
 static char lifeTop[128], lifeSince[48];
 
 static bool stepsOk;
@@ -241,6 +249,68 @@ static void draw_qr(void) {
     }
 }
 
+// ---------- game icons (the console's own HOME Menu icons) ----------
+typedef struct {
+    u64 tid;
+    bool ok;
+    C3D_Tex tex;
+    C2D_Image img;
+} Icon;
+static Icon icons[12];
+static int nicons;
+static const Tex3DS_SubTexture ICON_SUB = {48, 48, 0.0f, 48 / 64.0f, 48 / 64.0f, 0.0f};
+
+static void icons_free(void) {
+    for (int i = 0; i < nicons; i++) if (icons[i].ok) C3D_TexDelete(&icons[i].tex);
+    nicons = 0;
+}
+
+static void icon_load(u64 tid) {
+    for (int i = 0; i < nicons; i++) if (icons[i].tid == tid) return;
+    if (nicons >= 12 || !tid) return;
+    Icon *ic = &icons[nicons++];
+    memset(ic, 0, sizeof(*ic));
+    ic->tid = tid;
+    static u16 raw[48 * 48];
+    if (!names_icon(tid, raw)) return;
+    if (!C3D_TexInit(&ic->tex, 64, 64, GPU_RGB565)) return;
+    memset(ic->tex.data, 0, ic->tex.size);
+    // the icon is already in the GPU's 8x8 tile order: copy it row of tiles by row of tiles
+    u16 *dst = (u16 *)ic->tex.data + (64 - 48) * 64;
+    const u16 *src = raw;
+    for (int row = 0; row < 48; row += 8) {
+        memcpy(dst, src, 48 * 8 * sizeof(u16));
+        src += 48 * 8;
+        dst += 64 * 8;
+    }
+    C3D_TexFlush(&ic->tex);
+    ic->img = (C2D_Image){&ic->tex, &ICON_SUB};
+    ic->ok = true;
+}
+
+static const C2D_Image *icon_get(u64 tid) {
+    for (int i = 0; i < nicons; i++) if (icons[i].tid == tid) return icons[i].ok ? &icons[i].img : NULL;
+    return NULL;
+}
+
+// icon in a rounded tile; initials if the console has no icon (DS games)
+static void draw_icon(u64 tid, const char *name, float x, float y, float size) {
+    rrect(x - 3, y - 3, size + 6, size + 6, size * 0.16f + 3, C_PANEL2);
+    const C2D_Image *img = icon_get(tid);
+    if (img) {
+        C2D_DrawImageAt(*img, x, y, 0, NULL, size / 48.0f, size / 48.0f);
+        return;
+    }
+    rrect(x, y, size, size, size * 0.16f, C2D_Color32(0x1a, 0x27, 0x42, 0xff));
+    char ini[8] = {0};
+    int k = 0;
+    for (const char *p = name; *p && k < 2; p++) {
+        if ((p == name || p[-1] == ' ') && ((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9')))
+            ini[k++] = (*p >= 'a' && *p <= 'z') ? *p - 32 : *p;
+    }
+    text(ini[0] ? ini : "?", x + size / 2, y + size / 2 - size * 0.22f, size / 60.0f, C_TEXT, C2D_AlignCenter);
+}
+
 // ---------- data ----------
 static void save_link(void) {
     FILE *f = fopen("sdmc:/3ds/3ds-wrapped/enlace.txt", "w");
@@ -256,7 +326,7 @@ static void build(const Chunk *chunks, int n, u16 year) {
     if (!encode(names_get, &extras) && !encode(NULL, &extras) && !encode(names_get, NULL)) encode(NULL, NULL);
     save_link();
 
-    topCount = stats.ntitles < 3 ? stats.ntitles : 3;
+    topCount = stats.ntitles < 5 ? stats.ntitles : 5;
     u32 max = topCount ? stats.titles[0].secs : 1;
     for (int i = 0; i < topCount; i++) {
         char full[128];
@@ -265,6 +335,13 @@ static void build(const Chunk *chunks, int n, u16 year) {
         snprintf(topRows[i].hours, sizeof(topRows[i].hours), "%lu h", (unsigned long)(stats.titles[i].secs / 3600));
         topRows[i].ratio = max ? (float)stats.titles[i].secs / max : 0;
     }
+
+    // icons for the slides (outside of a frame)
+    icons_free();
+    for (int i = 0; i < topCount; i++) icon_load(stats.titles[i].tid);
+    icon_load(stats.longestTid);
+    icon_load(lifetime.topTid);
+
     C2D_TextBufClear(tbuf);
     anim = 0;
 }
@@ -389,7 +466,7 @@ static void draw_year_page(u16 year, bool canPrev, bool canNext) {
     stat_tile(164, 90, v, TR(stats.streakLen == 1 ? "día de racha" : "días de racha", "day streak"), C_TEXT);
 
     text(TR("Más jugados", "Most played"), 10, 138, 0.45f, C_MUTED, C2D_AlignLeft);
-    for (int i = 0; i < topCount; i++) {
+    for (int i = 0; i < topCount && i < 3; i++) {
         float y = 156 + i * 21;
         C2D_DrawCircleSolid(17, y + 7, 0, 8, i == 0 ? C_BLUE : C_PANEL2);
         snprintf(buf, sizeof(buf), "%d", i + 1);
@@ -401,7 +478,7 @@ static void draw_year_page(u16 year, bool canPrev, bool canNext) {
     }
     if (!topCount) text(TR("No hay partidas este año.", "No play sessions this year."), BOT_W / 2, 170, 0.5f, C_MUTED, C2D_AlignCenter);
 
-    footer(TR("L/R: año  ·  START: salir", "L/R: year  ·  START: quit"));
+    footer(TR("L/R: año  ·  B: resumen", "L/R: year  ·  B: summary"));
 }
 
 static void draw_life_page(void) {
@@ -436,7 +513,281 @@ static void draw_life_page(void) {
         snprintf(v, sizeof(v), "%s h", n);
     text(v, 18, 186, 0.48f, C_MUTED, C2D_AlignLeft);
 
-    footer(TR("START: salir", "START: quit"));
+    footer(TR("B: resumen  ·  START: salir", "B: summary  ·  START: quit"));
+}
+
+// ---------- slideshow ----------
+static u32 fade(u32 c, float a) {
+    u32 alpha = (u32)(((c >> 24) & 0xFF) * (a < 0 ? 0 : a > 1 ? 1 : a));
+    return (c & 0x00FFFFFF) | (alpha << 24);
+}
+
+static int peak_hour(void) {
+    int p = 0;
+    for (int h = 1; h < 24; h++) if (stats.hourSecs[h] > stats.hourSecs[p]) p = h;
+    return p;
+}
+
+static const char *profile_name(int peak) {
+    if (peak < 6) return TR("Búho nocturno", "Night owl");
+    if (peak < 12) return TR("Madrugador", "Early bird");
+    if (peak < 18) return TR("Jugador de sobremesa", "Afternoon player");
+    return TR("Gamer de prime time", "Prime-time gamer");
+}
+
+static const char *profile_desc(int peak) {
+    if (peak < 6) return TR("Tus mejores partidas son de madrugada.", "Your best sessions happen after midnight.");
+    if (peak < 12) return TR("Empiezas el día con la consola en la mano.", "You start the day with the console in your hands.");
+    if (peak < 18) return TR("La tarde es tu momento.", "Afternoons are your time.");
+    return TR("Las noches son para jugar.", "Evenings are for playing.");
+}
+
+// day of the year -> "23 de noviembre" / "November 23"
+static void doy_text(u16 year, u16 doy, char *out, int outlen) {
+    static const u8 ML[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int m = 0, d = doy;
+    while (m < 11 && d >= ML[m] + (m == 1 && is_leap(year))) { d -= ML[m] + (m == 1 && is_leap(year)); m++; }
+    if (en) snprintf(out, outlen, "%s %d", MONTHS_EN[m], d + 1);
+    else snprintf(out, outlen, "%d de %s", d + 1, MONTHS_ES[m]);
+}
+
+static void duration_text(u32 secs, char *out, int outlen) {
+    u32 m = secs / 60;
+    if (m >= 60) snprintf(out, outlen, "%lu h %lu min", (unsigned long)(m / 60), (unsigned long)(m % 60));
+    else snprintf(out, outlen, "%lu min", (unsigned long)m);
+}
+
+static bool has_life(void) { return lifetime.totalSecs > 0; }
+
+// slow floating sparkles behind the slides
+static void sparkles(float w) {
+    for (int i = 0; i < 26; i++) {
+        float sp = 6 + (i % 4) * 4;
+        float x = fmodf(i * 97.0f + clockT * sp * (i % 2 ? 1 : -1) + 1000 * w, w);
+        float y = fmodf(i * 53.0f + 1000 - clockT * (sp + 4), SCR_H);
+        float a = 0.25f + 0.25f * sinf(clockT * 2 + i);
+        C2D_DrawCircleSolid(x < 0 ? x + w : x, y < 0 ? y + SCR_H : y, 0, 1 + (i % 3) * 0.6f, fade(C_SOFT, a));
+    }
+}
+
+static void slide_dots(void) {
+    int count = has_life() ? S_COUNT : S_COUNT - 1;
+    float w = count * 12, x0 = BOT_W / 2 - w / 2 + 6;
+    for (int i = 0, k = 0; i < S_COUNT; i++) {
+        if (i == S_LIFE && !has_life()) continue;
+        bool on = i == slide;
+        C2D_DrawCircleSolid(x0 + k * 12, 206, 0, on ? 4 : 2.5f, on ? C_CYAN : C_LINE);
+        k++;
+    }
+    C2D_DrawRectSolid(0, 222, 0, BOT_W, 18, C_PANEL);
+    text(TR("A: siguiente   B: atrás   SELECT: QR", "A: next   B: back   SELECT: QR"), BOT_W / 2, 224, 0.38f, C_MUTED, C2D_AlignCenter);
+}
+
+static void big_number(const char *s, float x, float y, float size, u32 color) {
+    // soft glow under the number
+    text(s, x, y + 2, size, fade(C_BLUE, 0.35f), C2D_AlignCenter);
+    text(s, x, y, size, color, C2D_AlignCenter);
+}
+
+static void slide_top(u16 year) {
+    float a = ease(slideAnim), dx = slideDir2 * (1 - a) * 40;
+    char b1[64], b2[96];
+    background(TOP_W);
+    sparkles(TOP_W);
+    logo(10, 8, 20);
+    snprintf(b1, sizeof(b1), "3DS Wrapped · %u", year);
+    text(b1, 36, 9, 0.42f, C_MUTED, C2D_AlignLeft);
+
+    const float cx = TOP_W / 2 + dx;
+    switch (slide) {
+    case S_INTRO:
+        logo(cx - 36, 40, 72);
+        text(TR("Tu año en la consola", "Your year on the console"), cx, 124, 0.55f, fade(C_CYAN, a), C2D_AlignCenter);
+        snprintf(b1, sizeof(b1), "%u", year);
+        big_number(b1, cx, 142, 1.9f, fade(C_TEXT, a));
+        break;
+    case S_HOURS:
+        text(TR("Este año jugaste", "This year you played"), cx, 38, 0.55f, fade(C_CYAN, a), C2D_AlignCenter);
+        fmt_num((u32)(stats.totalSecs / 3600 * a), b1, sizeof(b1));
+        big_number(b1, cx, 62, 2.5f, fade(C_TEXT, a));
+        text(TR("horas", "hours"), cx, 140, 0.7f, fade(C_TEXT, a), C2D_AlignCenter);
+        snprintf(b2, sizeof(b2), TR("en %u días · %u partidas", "over %u days · %u sessions"), stats.daysPlayed, stats.sessions);
+        text(b2, cx, 178, 0.5f, fade(C_MUTED, a), C2D_AlignCenter);
+        break;
+    case S_GOTY: {
+        if (!topCount) break;
+        text(TR("Tu juego del año", "Your game of the year"), cx, 16, 0.55f, fade(C_CYAN, a), C2D_AlignCenter);
+        float bob = sinf(clockT * 2) * 3;
+        for (int r = 3; r >= 1; r--) C2D_DrawCircleSolid(cx, 92 + bob, 0, 44 + r * 10, fade(C_BLUE, 0.08f * a));
+        draw_icon(stats.titles[0].tid, topRows[0].name, cx - 48, 44 + bob, 96);
+        char full[128];
+        title_name(stats.titles[0].tid, full, sizeof(full));
+        fit(full, 0.7f, 380, b2, sizeof(b2));
+        text(b2, cx, 152, 0.7f, fade(C_TEXT, a), C2D_AlignCenter);
+        snprintf(b1, sizeof(b1), TR("%lu h · %d %% de tu tiempo", "%lu h · %d %% of your time"), (unsigned long)(stats.titles[0].secs / 3600),
+                 (int)(stats.totalSecs ? stats.titles[0].secs * 100.0 / stats.totalSecs + 0.5 : 0));
+        text(b1, cx, 184, 0.55f, fade(C_CYAN, a), C2D_AlignCenter);
+        break;
+    }
+    case S_TOP5:
+        text(TR("Tu top 5", "Your top 5"), cx, 8, 0.55f, fade(C_CYAN, a), C2D_AlignCenter);
+        for (int i = 0; i < topCount; i++) {
+            float y = 34 + i * 41, x = 16 + dx * (1 + i * 0.3f);
+            C2D_DrawCircleSolid(x + 8, y + 16, 0, 9, i == 0 ? C_BLUE : C_PANEL2);
+            snprintf(b1, sizeof(b1), "%d", i + 1);
+            text(b1, x + 8, y + 8, 0.45f, C_TEXT, C2D_AlignCenter);
+            draw_icon(stats.titles[i].tid, topRows[i].name, x + 26, y, 32);
+            text(topRows[i].name, x + 68, y + 1, 0.52f, fade(C_TEXT, a), C2D_AlignLeft);
+            text(topRows[i].hours, TOP_W - 16 + dx, y + 1, 0.52f, fade(C_CYAN, a), C2D_AlignRight);
+            C2D_DrawRectSolid(x + 68, y + 22, 0, TOP_W - 100 - x, 3, C_LINE);
+            C2D_DrawRectSolid(x + 68, y + 22, 0, (TOP_W - 100 - x) * topRows[i].ratio * a, 3, i == 0 ? C_CYAN : C_BLUE);
+        }
+        break;
+    case S_PROFILE: {
+        int p = peak_hour();
+        text(TR("Tu perfil", "Your profile"), cx, 34, 0.55f, fade(C_CYAN, a), C2D_AlignCenter);
+        fit(profile_name(p), 1.0f, 380, b2, sizeof(b2));
+        big_number(b2, cx, 66, 1.0f, fade(C_TEXT, a));
+        text(profile_desc(p), cx, 114, 0.5f, fade(C_MUTED, a), C2D_AlignCenter);
+        snprintf(b1, sizeof(b1), TR("Tu hora punta: %d:00", "Your peak hour: %d:00"), p);
+        rrect(cx - 90, 150, 180, 30, 15, C_PANEL2);
+        text(b1, cx, 156, 0.52f, fade(C_CYAN, a), C2D_AlignCenter);
+        break;
+    }
+    case S_STREAK:
+        text(TR("Tu racha más larga", "Your longest streak"), cx, 30, 0.55f, fade(C_CYAN, a), C2D_AlignCenter);
+        snprintf(b1, sizeof(b1), "%d", (int)(stats.streakLen * a + 0.5f));
+        big_number(b1, cx, 54, 2.4f, fade(C_TEXT, a));
+        text(TR(stats.streakLen == 1 ? "día seguido" : "días seguidos", stats.streakLen == 1 ? "day in a row" : "days in a row"), cx, 132, 0.65f, fade(C_TEXT, a), C2D_AlignCenter);
+        if (stats.streakLen) {
+            char f1[40], f2[40];
+            doy_text(year, stats.streakFrom, f1, sizeof(f1));
+            doy_text(year, stats.streakFrom + stats.streakLen - 1, f2, sizeof(f2));
+            snprintf(b2, sizeof(b2), TR("del %s al %s", "from %s to %s"), f1, f2);
+            text(b2, cx, 166, 0.48f, fade(C_MUTED, a), C2D_AlignCenter);
+        }
+        break;
+    case S_LIFE: {
+        text(TR("Toda tu 3DS", "Your whole 3DS"), cx, 20, 0.55f, fade(C_CYAN, a), C2D_AlignCenter);
+        fmt_num((u32)(lifetime.totalSecs / 3600 * a), b1, sizeof(b1));
+        big_number(b1, cx, 40, 2.1f, fade(C_TEXT, a));
+        text(TR("horas desde siempre", "hours, all time"), cx, 110, 0.6f, fade(C_TEXT, a), C2D_AlignCenter);
+        text(lifeSince, cx, 132, 0.48f, fade(C_CYAN, a), C2D_AlignCenter);
+        rrect(cx - 170, 160, 340, 58, 12, C_PANEL);
+        draw_icon(lifetime.topTid, lifeTop, cx - 160, 166, 46);
+        text(TR("Tu juego de siempre", "Your all-time favourite"), cx - 104, 166, 0.42f, C_CYAN, C2D_AlignLeft);
+        fit(lifeTop, 0.52f, 260, b2, sizeof(b2));
+        text(b2, cx - 104, 184, 0.52f, C_TEXT, C2D_AlignLeft);
+        break;
+    }
+    }
+}
+
+static void slide_bottom(u16 year) {
+    float a = ease(slideAnim);
+    char b1[64], b2[96];
+    background(BOT_W);
+    switch (slide) {
+    case S_INTRO:
+        rrect(16, 40, BOT_W - 32, 120, 14, C_PANEL);
+        snprintf(b1, sizeof(b1), TR("Tu Wrapped de %u", "Your %u Wrapped"), year);
+        text(b1, BOT_W / 2, 62, 0.7f, C_TEXT, C2D_AlignCenter);
+        text(TR("está listo.", "is ready."), BOT_W / 2, 88, 0.55f, C_MUTED, C2D_AlignCenter);
+        text(TR("Pulsa A para empezar", "Press A to start"), BOT_W / 2, 124, 0.55f, fade(C_CYAN, 0.6f + 0.4f * sinf(clockT * 4)), C2D_AlignCenter);
+        break;
+    case S_HOURS: {
+        int best = 0;
+        for (int m = 1; m < 12; m++) if (stats.monthSecs[m] > stats.monthSecs[best]) best = m;
+        snprintf(b1, sizeof(b1), TR("Tu mes: %s · %lu h", "Your month: %s · %lu h"), en ? MONTHS_EN[best] : MONTHS_ES[best], (unsigned long)(stats.monthSecs[best] / 3600));
+        text(b1, BOT_W / 2, 10, 0.5f, C_TEXT, C2D_AlignCenter);
+        u32 max = stats.monthSecs[best] ? stats.monthSecs[best] : 1;
+        const char *L = en ? "JFMAMJJASOND" : "EFMAMJJASOND";
+        for (int m = 0; m < 12; m++) {
+            float h = 130.0f * stats.monthSecs[m] / max * a, x = 18 + m * 24.5f;
+            rrect(x, 172 - (h < 6 ? 6 : h), 18, h < 6 ? 6 : h, 4, m == best ? C_CYAN : C2D_Color32(0x2a, 0x3a, 0x55, 0xff));
+            char l[2] = {L[m], 0};
+            text(l, x + 9, 176, 0.42f, m == best ? C_TEXT : C_MUTED, C2D_AlignCenter);
+        }
+        break;
+    }
+    case S_GOTY: {
+        if (!topCount) break;
+        const TitleStat *t = &stats.titles[0];
+        snprintf(b1, sizeof(b1), "%u", t->sessions);
+        stat_tile(8, 30, b1, TR("partidas", "sessions"), C_CYAN);
+        snprintf(b1, sizeof(b1), "%lu h", (unsigned long)(t->secs / 3600));
+        stat_tile(164, 30, b1, TR("jugadas", "played"), C_TEXT);
+        doy_text(year, t->lastDoy, b2, sizeof(b2));
+        rrect(8, 80, BOT_W - 16, 44, 9, C_PANEL);
+        text(TR("La última vez", "Last played"), 19, 84, 0.42f, C_MUTED, C2D_AlignLeft);
+        text(b2, 19, 100, 0.55f, C_TEXT, C2D_AlignLeft);
+        break;
+    }
+    case S_TOP5:
+        snprintf(b1, sizeof(b1), "%d", (int)(stats.ntitles * a + 0.5f));
+        big_number(b1, BOT_W / 2, 40, 1.8f, C_TEXT);
+        text(TR("juegos distintos este año", "different games this year"), BOT_W / 2, 104, 0.55f, C_MUTED, C2D_AlignCenter);
+        break;
+    case S_PROFILE: {
+        u32 max = 1;
+        for (int h = 0; h < 24; h++) if (stats.hourSecs[h] > max) max = stats.hourSecs[h];
+        int p = peak_hour();
+        text(TR("Cuándo juegas", "When you play"), BOT_W / 2, 10, 0.5f, C_TEXT, C2D_AlignCenter);
+        for (int h = 0; h < 24; h++) {
+            float bh = 130.0f * stats.hourSecs[h] / max * a, x = 14 + h * 12.2f;
+            rrect(x, 172 - (bh < 4 ? 4 : bh), 9, bh < 4 ? 4 : bh, 3, h == p ? C_CYAN : C2D_Color32(0x2a, 0x3a, 0x55, 0xff));
+        }
+        const char *lab[] = {"0", "6", "12", "18"};
+        for (int i = 0; i < 4; i++) text(lab[i], 18 + i * 6 * 12.2f, 176, 0.4f, C_MUTED, C2D_AlignCenter);
+        break;
+    }
+    case S_STREAK:
+        rrect(8, 30, BOT_W - 16, 52, 10, C_PANEL);
+        text(TR("Día con más juego", "Biggest day"), 18, 35, 0.42f, C_MUTED, C2D_AlignLeft);
+        doy_text(year, stats.bestDoy, b1, sizeof(b1));
+        duration_text(stats.bestSecs, b2, sizeof(b2));
+        text(b1, 18, 53, 0.55f, C_TEXT, C2D_AlignLeft);
+        text(b2, BOT_W - 18, 53, 0.55f, C_CYAN, C2D_AlignRight);
+        rrect(8, 90, BOT_W - 16, 64, 10, C_PANEL);
+        text(TR("Partida más larga", "Longest session"), 70, 95, 0.42f, C_MUTED, C2D_AlignLeft);
+        if (stats.hasSessions) {
+            char full[128];
+            title_name(stats.longestTid, full, sizeof(full));
+            fit(full, 0.5f, 230, b2, sizeof(b2));
+            draw_icon(stats.longestTid, b2, 18, 100, 42);
+            text(b2, 70, 112, 0.5f, C_TEXT, C2D_AlignLeft);
+            duration_text(stats.longestSecs, b1, sizeof(b1));
+            text(b1, 70, 130, 0.5f, C_CYAN, C2D_AlignLeft);
+        }
+        break;
+    case S_LIFE: {
+        char n[24];
+        fmt_num(lifetime.titles, n, sizeof(n));
+        stat_tile(8, 30, n, TR("títulos", "titles"), C_TEXT);
+        fmt_num(lifetime.launches, n, sizeof(n));
+        stat_tile(164, 30, n, TR("veces que abriste algo", "times you opened something"), C_TEXT);
+        if (stepsOk) {
+            fmt_num((u32)(stepsTotal * a), n, sizeof(n));
+            rrect(8, 80, BOT_W - 16, 60, 10, C_PANEL);
+            text(n, 20, 84, 0.95f, C_CYAN, C2D_AlignLeft);
+            fmt_num(stepsTotal * 3 / 4000, b1, sizeof(b1));
+            snprintf(b2, sizeof(b2), TR("pasos con la consola · ≈ %s km", "steps with the console · ≈ %s km"), b1);
+            text(b2, 20, 118, 0.42f, C_MUTED, C2D_AlignLeft);
+        }
+        break;
+    }
+    }
+    slide_dots();
+}
+
+static void go_slide(int dir) {
+    int s = slide + dir;
+    if (s == S_LIFE && !has_life()) s += dir;
+    if (s < 0 || s >= S_COUNT) return;
+    slide = s;
+    slideDir2 = dir;
+    slideAnim = 0;
+    anim = 0;
 }
 
 static void draw_message(C3D_RenderTarget *top, C3D_RenderTarget *bot, const char *title, const char *l1, const char *l2, const char *l3) {
@@ -517,39 +868,57 @@ int main(void) {
 
         if (nyears) {
             int prev = sel;
-            bool flip = down & KEY_X;
-            if (page == 0) {
-                if ((down & (KEY_LEFT | KEY_L)) && sel > 0) sel--;
-                if ((down & (KEY_RIGHT | KEY_R)) && sel < nyears - 1) sel++;
-            }
-            if (down & KEY_TOUCH) {
-                touchPosition t;
-                hidTouchRead(&t);
-                if (page == 0 && t.py < 40 && t.px < 50 && sel > 0) sel--;
-                if (page == 0 && t.py < 40 && t.px > BOT_W - 50 && sel < nyears - 1) sel++;
-                if (t.py > 218 && t.px > BOT_W - 116) flip = true;
-            }
-            if (flip) {
-                page = !page;
-                anim = 0;
-                slideDir = page ? 1 : -1;
+            clockT += 1.0f / 60.0f;
+            // L/R change the year everywhere
+            if ((down & KEY_L) && sel > 0) sel--;
+            if ((down & KEY_R) && sel < nyears - 1) sel++;
+
+            if (slide < S_QR) {
+                // slideshow: A / tap = next, B = back, SELECT = straight to the QR
+                if (down & (KEY_A | KEY_TOUCH)) go_slide(1);
+                else if (down & KEY_B) go_slide(-1);
+                if (down & KEY_SELECT) { slide = S_QR; slideDir2 = 1; anim = 0; }
+            } else {
+                bool flip = down & KEY_X;
+                if (down & KEY_B) go_slide(-1);
+                if (page == 0) {
+                    if ((down & KEY_LEFT) && sel > 0) sel--;
+                    if ((down & KEY_RIGHT) && sel < nyears - 1) sel++;
+                }
+                if (down & KEY_TOUCH) {
+                    touchPosition t;
+                    hidTouchRead(&t);
+                    if (page == 0 && t.py < 40 && t.px < 50 && sel > 0) sel--;
+                    if (page == 0 && t.py < 40 && t.px > BOT_W - 50 && sel < nyears - 1) sel++;
+                    if (t.py > 218 && t.px > BOT_W - 116) flip = true;
+                }
+                if (flip) {
+                    page = !page;
+                    anim = 0;
+                    slideDir = page ? 1 : -1;
+                }
             }
             if (sel != prev) {
-                slideDir = sel > prev ? 1 : -1;
+                slideDir = slideDir2 = sel > prev ? 1 : -1;
                 build(chunks, n, years[sel]);
+                slideAnim = 0;
             }
             if (anim < 1) anim += (1.0f - anim) * 0.12f + 0.004f;
             if (anim > 1) anim = 1;
+            if (slideAnim < 1) slideAnim += (1.0f - slideAnim) * 0.1f + 0.004f;
+            if (slideAnim > 1) slideAnim = 1;
 
             C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
             C2D_TextBufClear(tbuf);
             C2D_TargetClear(top, C_BG);
             C2D_SceneBegin(top);
-            draw_top(years[sel]);
+            if (slide < S_QR) slide_top(years[sel]);
+            else draw_top(years[sel]);
             C2D_TargetClear(bot, C_BG);
             C2D_SceneBegin(bot);
             background(BOT_W);
-            if (page) draw_life_page();
+            if (slide < S_QR) slide_bottom(years[sel]);
+            else if (page) draw_life_page();
             else draw_year_page(years[sel], sel > 0, sel < nyears - 1);
             C3D_FrameEnd(0);
         } else if (!loaded) {
@@ -565,6 +934,7 @@ int main(void) {
     }
 
     free(chunks);
+    icons_free();
     names_exit();
     C2D_TextBufDelete(tbuf);
     C2D_Fini();
