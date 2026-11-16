@@ -51,7 +51,7 @@
     const out = new Map();
     for (const id of titleIds) {
       const hit = map.get(id.slice(8));
-      out.set(id, hit ? { name: hit.name, code: hit.code || null } : { name: fallback(id), code: null });
+      out.set(id, hit ? { name: hit.name, code: hit.code || null, found: true } : { name: fallback(id), code: null, found: false });
     }
     return out;
   }

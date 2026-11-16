@@ -18,7 +18,16 @@
       const hi = u(2), lo = u(4);
       return ('0004' + hi.toString(16).padStart(4, '0') + lo.toString(16).padStart(8, '0')).toUpperCase();
     };
-    return { u, tid };
+    // v2: u8 length + UTF-8 name (empty when the website can look it up itself)
+    const utf8 = new TextDecoder('utf-8');
+    const name = () => {
+      const len = u(1);
+      if (o + len > bytes.length) throw new Error('El código QR está incompleto.');
+      const s = utf8.decode(bytes.subarray(o, o + len));
+      o += len;
+      return s || null;
+    };
+    return { u, tid, name };
   }
 
   function decode(str) {
@@ -26,7 +35,8 @@
     try { bytes = fromBase64url(str); } catch { throw new Error('El código QR no es válido.'); }
     const r = reader(bytes);
     const version = r.u(1);
-    if (version !== 1) throw new Error('Versión de datos no soportada. Actualiza la app de la 3DS.');
+    if (version !== 1 && version !== 2) throw new Error('Versión de datos no soportada. Actualiza la web o la app de la 3DS.');
+    const nm = () => (version >= 2 ? r.name() : null);
 
     const p = {
       year: r.u(2),
@@ -37,13 +47,13 @@
       top: [],
     };
     const n = r.u(1);
-    for (let i = 0; i < n; i++) p.top.push({ tid: r.tid(), minutes: r.u(3), sessions: r.u(2), lastDoy: r.u(2) });
+    for (let i = 0; i < n; i++) p.top.push({ tid: r.tid(), minutes: r.u(3), sessions: r.u(2), lastDoy: r.u(2), name: nm() });
     p.hours = Array.from({ length: 24 }, () => r.u(1));
     p.months = Array.from({ length: 12 }, () => r.u(2));
     p.best = { doy: r.u(2), minutes: r.u(2) };
     p.streak = { length: r.u(2), from: r.u(2) };
-    p.longest = { tid: r.tid(), minutes: r.u(2), doy: r.u(2), hour: r.u(1) };
-    p.first = { tid: r.tid(), doy: r.u(2), hour: r.u(1) };
+    p.longest = { tid: r.tid(), minutes: r.u(2), doy: r.u(2), hour: r.u(1), name: nm() };
+    p.first = { tid: r.tid(), doy: r.u(2), hour: r.u(1), name: nm() };
 
     const days = new Date(p.year, 1, 29).getMonth() === 1 ? 366 : 365;
     p.dayLevels = [];
@@ -60,7 +70,10 @@
     const ids = new Set(p.top.map(t => t.tid));
     if (p.sessions) { ids.add(p.longest.tid); ids.add(p.first.tid); }
     const info = await TitleDB.info([...ids]);
-    const name = tid => info.get(tid).name;
+    // names sent by the console fill the gaps of the eShop list (DS, homebrew…)
+    const fromConsole = new Map();
+    for (const t of [...p.top, p.longest, p.first]) if (t.name) fromConsole.set(t.tid, t.name);
+    const name = tid => (info.get(tid).found ? info.get(tid).name : fromConsole.get(tid) || info.get(tid).name);
     const code = tid => info.get(tid).code;
     const date = (doy, hour = 12) => new Date(p.year, 0, 1 + doy, hour);
 
