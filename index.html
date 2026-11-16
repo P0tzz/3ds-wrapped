@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=20261116c">
+  <link rel="stylesheet" href="css/styles.css?v=20261116d">
 </head>
 <body>
   <nav class="topbar">
@@ -96,30 +96,33 @@
         <div id="top" class="library"></div>
       </section>
 
-      <section class="section split">
-        <div class="panel reveal">
-          <h3>Por mes</h3>
-          <div id="months" class="cols"></div>
-        </div>
-        <div class="panel reveal" style="--d:120ms">
-          <h3>Por hora del día</h3>
-          <div id="hours" class="cols cols-24"></div>
+      <section class="section">
+        <h2 class="reveal">Tu ritmo</h2>
+        <div class="rhythm">
+          <article id="card-month" class="panel chart-card reveal"></article>
+          <article id="card-week" class="panel chart-card reveal" style="--d:100ms"></article>
+          <article id="card-hour" class="panel chart-card reveal" style="--d:200ms"></article>
         </div>
       </section>
 
       <section class="section panel reveal">
-        <h3>Día a día</h3>
+        <div id="cal-head" class="cal-head"></div>
         <div class="heatmap-scroll"><div id="heatmap" class="heatmap"></div></div>
         <div class="legend">Menos <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> Más</div>
       </section>
 
       <section class="section">
         <h2 class="reveal">Destacados</h2>
-        <div id="highlights" class="facts"></div>
+        <div id="awards" class="awards"></div>
+        <div id="highlights" class="chips"></div>
       </section>
 
       <section class="section share">
         <h2 class="reveal">Compártelo</h2>
+        <div class="format-switch reveal" role="group" aria-label="Formato de la tarjeta">
+          <button type="button" class="fmt is-on" data-format="post">Publicación</button>
+          <button type="button" class="fmt" data-format="story">Historia</button>
+        </div>
         <div id="share-card" class="share-card reveal"></div>
         <div class="share-actions">
           <button id="share" class="pill" hidden>Compartir</button>
@@ -152,11 +155,11 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="js/sample-data.js?v=20261116c"></script>
-  <script src="js/titledb.js?v=20261116c"></script>
-  <script src="js/parsers.js?v=20261116c"></script>
-  <script src="js/qrdata.js?v=20261116c"></script>
-  <script src="js/stats.js?v=20261116c"></script>
-  <script src="js/app.js?v=20261116c"></script>
+  <script src="js/sample-data.js?v=20261116d"></script>
+  <script src="js/titledb.js?v=20261116d"></script>
+  <script src="js/parsers.js?v=20261116d"></script>
+  <script src="js/qrdata.js?v=20261116d"></script>
+  <script src="js/stats.js?v=20261116d"></script>
+  <script src="js/app.js?v=20261116d"></script>
 </body>
 </html>

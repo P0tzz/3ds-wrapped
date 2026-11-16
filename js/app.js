@@ -288,10 +288,13 @@
     renderHero(s);
     renderTiles(s);
     renderLibrary(s);
-    renderCols($('#months'), s.byMonth, MONTHS, i => `${MONTHS_LONG[i]}: ${hours(s.byMonth[i])} h`);
-    renderCols($('#hours'), s.byHour, s.byHour.map((_, h) => (h % 6 === 0 ? `${h}h` : '')), h => `${h}:00`);
+    renderMonth(s);
+    renderWeek(s);
+    renderHour(s);
+    renderCalHead(s);
     renderHeatmap(s);
-    renderFacts(s);
+    renderAwards(s);
+    renderChips(s);
     renderShareCard(s);
     requestAnimationFrame(observeReveals);
   }
@@ -352,15 +355,143 @@
     document.querySelectorAll('#top .game').forEach(addTilt);
   }
 
-  function renderCols(box, values, labels, title) {
+  // ---- "Tu ritmo": each chart leads with what it says about you ----
+  const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  const WEEKDAYS_PLURAL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
+  const PERIODS = [['madrugada', 0, 6], ['mañana', 6, 12], ['tarde', 12, 18], ['noche', 18, 24]];
+  const capFirst = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const pct = (a, b) => Math.round((a / Math.max(1, b)) * 100);
+  const sum = arr => arr.reduce((a, b) => a + b, 0);
+
+  function chartHead(kicker, title, sub) {
+    return [
+      el('div', { class: 'ck', text: kicker }),
+      el('h3', { class: 'ct', text: title }),
+      el('p', { class: 'cs', text: sub }),
+    ];
+  }
+
+  // vertical bars; the tallest one carries a label, optional dashed average line
+  function bars(values, labels, tips, opts = {}) {
     const max = Math.max(1, ...values);
     const peak = values.indexOf(Math.max(...values));
-    box.replaceChildren(...values.map((v, i) =>
-      el('div', { class: 'col' + (i === peak && v > 0 ? ' top' : ''), title: title(i) }, [
-        el('i', { style: `height:${(v / max) * 100}%;--d:${i * (values.length > 12 ? 25 : 50)}ms` }),
+    const box = el('div', { class: 'bars' });
+    values.forEach((v, i) => {
+      const h = (v / max) * 100;
+      box.append(el('div', { class: 'col' + (i === peak && v > 0 ? ' top' : ''), 'data-tip': tips[i] }, [
+        el('div', { class: 'track' }, [
+          i === peak && v > 0 ? el('span', { class: 'bubble', text: opts.peakLabel, style: `bottom:calc(${h}% + 8px)` }) : null,
+          el('i', { style: `height:${h}%;--d:${i * 45}ms` }),
+        ]),
         el('small', { text: labels[i] }),
+      ]));
+    });
+    if (opts.avg) {
+      box.append(el('div', { class: 'avg', style: `bottom:calc(var(--lab) + (100% - var(--lab)) * ${(opts.avg / max).toFixed(3)})` },
+        el('span', { text: 'tu media' })));
+    }
+    return box;
+  }
+
+  function renderMonth(s) {
+    const m = s.byMonth;
+    const active = m.filter(v => v > 0);
+    const avg = sum(active) / Math.max(1, active.length);
+    const best = s.bestMonth;
+    const ratio = avg ? m[best] / avg : 0;
+    const sub = ratio >= 1.15
+      ? `${hours(m[best])} h · ${ratio.toFixed(1).replace('.', ',')}× tu media mensual`
+      : `${hours(m[best])} h · un año muy regular`;
+    $('#card-month').replaceChildren(
+      ...chartHead('Tu mes', `${capFirst(MONTHS_LONG[best])} fue tu mes`, sub),
+      bars(m, MONTHS, m.map((v, i) => `${capFirst(MONTHS_LONG[i])}: ${hours(v)} h`), { avg, peakLabel: `${hours(m[best])} h` })
+    );
+  }
+
+  function weekdayTotals(s) {
+    const w = new Array(7).fill(0);
+    for (const [key, min] of s.byDay) w[(new Date(key + 'T12:00:00').getDay() + 6) % 7] += min;
+    return w;
+  }
+
+  function renderWeek(s) {
+    const w = weekdayTotals(s);
+    const total = sum(w);
+    const best = w.indexOf(Math.max(...w));
+    $('#card-week').replaceChildren(
+      ...chartHead('Tu día', `Los ${WEEKDAYS_PLURAL[best]} son tu día`,
+        `${pct(w[best], total)} % de tus horas · ${pct(w[5] + w[6], total)} % en fin de semana`),
+      bars(w, WEEKDAYS, w.map((v, i) => `${capFirst(WEEKDAYS_PLURAL[i])}: ${pct(v, total)} %`), { peakLabel: `${pct(w[best], total)} %` })
+    );
+  }
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs = {}) {
+    const n = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    return n;
+  }
+
+  // 24-hour clock: one ray per hour, longer = more play
+  function renderHour(s) {
+    const h = s.byHour;
+    const total = sum(h);
+    const max = Math.max(1, ...h);
+    const peak = h.indexOf(Math.max(...h));
+    const shares = PERIODS.map(([name, a, b]) => [name, pct(sum(h.slice(a, b)), total)]);
+    const main = shares.reduce((x, y) => (y[1] > x[1] ? y : x));
+
+    const svg = svgEl('svg', { viewBox: '0 0 200 200', class: 'clock', role: 'img', 'aria-label': `Horas por hora del día; pico a las ${peak}:00` });
+    svg.append(svgEl('circle', { cx: 100, cy: 100, r: 38, class: 'clock-face' }));
+    h.forEach((v, i) => {
+      const a = (i / 24) * 2 * Math.PI - Math.PI / 2;
+      const r0 = 46, r1 = 52 + (v / max) * 44;
+      const ray = svgEl('line', {
+        x1: (100 + r0 * Math.cos(a)).toFixed(1), y1: (100 + r0 * Math.sin(a)).toFixed(1),
+        x2: (100 + r1 * Math.cos(a)).toFixed(1), y2: (100 + r1 * Math.sin(a)).toFixed(1),
+        class: 'ray' + (i === peak ? ' top' : ''), style: `--d:${i * 25}ms`,
+      });
+      ray.append(svgEl('title'));
+      ray.firstChild.textContent = `${i}:00 · ${hours(v)} h`;
+      svg.append(ray);
+    });
+    for (const [i, x, y] of [[0, 100, 74], [6, 127, 103], [12, 100, 132], [18, 73, 103]]) {
+      const t = svgEl('text', { x, y, class: 'clock-tick' });
+      t.textContent = i;
+      svg.append(t);
+    }
+    const big = svgEl('text', { x: 100, y: 104, class: 'clock-peak' });
+    big.textContent = `${peak}h`;
+    svg.append(big);
+
+    const split = el('div', { class: 'periods' }, shares.map(([name, p], i) =>
+      el('i', { class: 'p' + i + (name === main[0] ? ' top' : ''), style: `flex-grow:${Math.max(p, 1)}`, title: `${capFirst(name)}: ${p} %` })));
+    const legend = el('div', { class: 'period-legend' }, shares.map(([name, p], i) =>
+      el('span', { class: name === main[0] ? 'top' : '' }, [el('i', { class: 'p' + i }), `${capFirst(name)} ${p} %`])));
+
+    $('#card-hour').replaceChildren(
+      ...chartHead('Tu hora', `Eres de ${main[0]}`, `${main[1]} % de tus horas · pico a las ${peak}:00`),
+      el('div', { class: 'clock-wrap' }, svg),
+      split,
+      legend
+    );
+  }
+
+  function renderCalHead(s) {
+    const jan1 = new Date(s.year, 0, 1);
+    const yearDays = new Date(s.year, 1, 29).getMonth() === 1 ? 366 : 365;
+    const now = new Date();
+    // the current year is not over yet: compare with the days elapsed
+    const days = now.getFullYear() === s.year ? Math.floor((now - jan1) / 864e5) + 1 : yearDays;
+    const stat = (k, v) => el('div', { class: 'cal-stat' }, [el('span', { text: k }), el('b', { text: v })]);
+    $('#cal-head').replaceChildren(
+      el('div', {}, chartHead('Día a día', `${s.daysPlayed} días jugando`,
+        `${pct(s.daysPlayed, days)} % de los días ${now.getFullYear() === s.year ? 'de este año' : `de ${s.year}`}`)),
+      el('div', { class: 'cal-stats' }, [
+        s.streak.length ? stat('Racha', `${s.streak.length} días`) : null,
+        s.bestDay ? stat('Mejor día', `${s.bestDay.date.getDate()} ${MONTHS_SHORT[s.bestDay.date.getMonth()].toLowerCase()} · ${fmtDuration(s.bestDay.minutes)}`) : null,
       ])
-    ));
+    );
   }
 
   function renderHeatmap(s) {
@@ -382,45 +513,116 @@
     $('#heatmap').replaceChildren(...cells);
   }
 
-  function renderFacts(s) {
+  // ---- Destacados ----
+  // big cards with the cover for the moments tied to a game
+  function renderAwards(s) {
     const items = [];
-    const add = (visual, label, value, note) =>
-      items.push(reveal(el('div', { class: 'fact' }, [
-        visual,
+    const award = (g, label, value, note) => {
+      const bg = el('div', { class: 'award-bg' });
+      const url = coverUrls(g.code, g.platform)[0];
+      if (url) bg.style.backgroundImage = `url("${url}")`;
+      items.push(reveal(el('article', { class: 'award' }, [
+        bg,
+        el('div', { class: 'award-art' }, cover(g)),
+        el('div', { class: 'award-txt' }, [
+          el('div', { class: 'ck', text: label }),
+          el('div', { class: 'award-value', text: value }),
+          el('div', { class: 'award-game', text: g.game }),
+          note ? el('div', { class: 'cs', text: note }) : null,
+        ]),
+      ]), 90 * items.length));
+    };
+
+    if (s.longestSession) award(s.longestSession, 'Partida más larga', fmtDuration(s.longestSession.minutes), `el ${fmtDate(s.longestSession.start)}`);
+    if (s.firstSession) award(s.firstSession, 'Primer juego del año', fmtDate(s.firstSession.start), 'así empezó tu año');
+    if (s.forgotten && s.games.length > 1) {
+      const end = new Date(Math.min(Date.now(), new Date(s.year, 11, 31).getTime()));
+      const days = Math.max(1, Math.round((end - s.forgotten.last) / 864e5));
+      award(s.forgotten, 'El olvidado', `${days} días sin abrirlo`, `la última vez fue el ${fmtDate(s.forgotten.last)}`);
+    }
+    $('#awards').replaceChildren(...items);
+  }
+
+  // small line icons (drawn for this project)
+  const ICONS = {
+    moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    cup: '<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/>',
+    flame: '<path d="M12 3c.8 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.3 1.2-3.8 2.4-4.8.2 1.6 1 2.7 2.3 3.1C11 8.5 11 5.6 12 3z"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    timer: '<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M9.5 2.5h5"/>',
+  };
+  function icon(name) {
+    const span = el('span', { class: 'chip-ico', 'aria-hidden': 'true' });
+    span.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+    return span;
+  }
+
+  function renderChips(s) {
+    const items = [];
+    const chip = (ico, label, value, note) =>
+      items.push(reveal(el('div', { class: 'chip' }, [
+        icon(ico),
         el('div', {}, [
-          el('div', { class: 'label', text: label }),
-          el('div', { class: 'value', text: value }),
-          note ? el('div', { class: 'note', text: note }) : null,
+          el('div', { class: 'ck', text: label }),
+          el('div', { class: 'chip-value', text: value }),
+          note ? el('div', { class: 'cs', text: note }) : null,
         ]),
       ]), 70 * items.length));
-    const thumb = g => el('div', { class: 'thumb' }, cover(g));
-    const badge = t => el('div', { class: 'badge', text: t });
 
-    add(badge(s.personality.peakHour + 'h'), 'Tu perfil', s.personality.name, s.personality.desc);
-    if (s.streak.length) add(badge(s.streak.length), 'Racha más larga', `${s.streak.length} días seguidos`, `del ${fmtDate(s.streak.from)} al ${fmtDate(s.streak.to)}`);
-    if (s.longestSession) add(thumb(s.longestSession), 'Partida más larga', fmtDuration(s.longestSession.minutes), `${s.longestSession.game}, ${fmtDate(s.longestSession.start)}`);
-    if (s.firstSession) add(thumb(s.firstSession), 'Primer juego del año', s.firstSession.game, fmtDate(s.firstSession.start));
-    if (s.bestDay) add(badge(s.bestDay.date.getDate()), 'Día con más juego', fmtDate(s.bestDay.date), fmtDuration(s.bestDay.minutes));
-    add(badge(MONTHS_SHORT[s.bestMonth]), 'Mes con más juego', MONTHS_LONG[s.bestMonth], `${hours(s.byMonth[s.bestMonth])} h`);
-    if (s.forgotten && s.games.length > 1) add(thumb(s.forgotten), 'El olvidado', s.forgotten.game, `sin abrir desde el ${fmtDate(s.forgotten.last)}`);
-
+    const peak = s.personality.peakHour;
+    chip(peak < 6 || peak >= 20 ? 'moon' : peak < 12 ? 'sun' : 'cup', 'Tu perfil', s.personality.name, s.personality.desc);
+    if (s.streak.length) chip('flame', 'Racha más larga', `${s.streak.length} días seguidos`, `del ${fmtDate(s.streak.from)} al ${fmtDate(s.streak.to)}`);
+    if (s.bestDay) chip('calendar', 'Día con más juego', fmtDate(s.bestDay.date), fmtDuration(s.bestDay.minutes));
+    if (s.sessionCount) chip('timer', 'Partida media', fmtDuration(s.totalMinutes / s.sessionCount), `en ${s.sessionCount} partidas`);
     $('#highlights').replaceChildren(...items);
   }
 
+  // ---- shareable card: "post" or vertical "story" ----
+  let cardFormat = 'post';
+
   function renderShareCard(s) {
-    $('#share-card').replaceChildren(
-      el('div', { class: 'sc-top' }, [el('span', { text: '3DS Wrapped' }), el('span', { text: s.year })]),
-      el('div', { class: 'sc-hours' }, [hours(s.totalMinutes), el('small', { text: ' h' })]),
+    const card = $('#share-card');
+    card.classList.toggle('story', cardFormat === 'story');
+    const months = s.byMonth;
+    const mmax = Math.max(1, ...months);
+    const g1 = s.games[0];
+
+    card.replaceChildren(
+      el('div', { class: 'sc-orb a' }),
+      el('div', { class: 'sc-orb b' }),
+      el('div', { class: 'sc-head' }, [
+        el('img', { src: 'img/icon-180.png', alt: '', width: 34, height: 34 }),
+        el('span', { text: '3DS Wrapped' }),
+        el('b', { class: 'sc-year', text: s.year }),
+      ]),
+      el('div', { class: 'sc-hours' }, [hours(s.totalMinutes), el('small', { text: ' horas' })]),
       el('div', { class: 'sc-sub', text: `jugando a ${s.gameCount} juegos en ${s.daysPlayed} días` }),
+      g1 ? el('div', { class: 'sc-goty story-only' }, [
+        el('span', { text: 'Tu juego del año' }),
+        el('b', { text: g1.game }),
+        el('em', { text: `${hours(g1.minutes)} h · ${pct(g1.minutes, s.totalMinutes)} % de tu tiempo` }),
+      ]) : null,
       el('ol', { class: 'sc-list' }, s.games.slice(0, 5).map((g, i) =>
-        el('li', {}, [el('b', { text: i + 1 }), el('span', { class: 't', text: g.game }), el('span', { text: `${hours(g.minutes)} h` })])
+        el('li', {}, [el('b', { text: i + 1 }), el('span', { class: 't', text: g.game }), el('span', { class: 'h', text: `${hours(g.minutes)} h` })])
       )),
+      el('div', { class: 'sc-year-bars' }, [
+        el('span', { text: 'Tu año' }),
+        el('div', { class: 'sc-bars' }, months.map((v, i) =>
+          el('i', { class: i === s.bestMonth ? 'top' : '', style: `height:${Math.max(6, (v / mmax) * 100)}%` }))),
+      ]),
       el('div', { class: 'sc-tags' }, [
         el('span', { text: s.personality.name }),
         s.streak.length ? el('span', { text: `racha de ${s.streak.length} días` }) : null,
       ]),
       el('div', { class: 'sc-foot', text: 'p0tzz.github.io/3ds-wrapped' })
     );
+  }
+
+  function setFormat(fmt) {
+    cardFormat = fmt;
+    document.querySelectorAll('.fmt').forEach(b => b.classList.toggle('is-on', b.dataset.format === fmt));
+    $('#share-card').classList.toggle('story', fmt === 'story');
   }
 
   async function cardCanvas() {
@@ -468,6 +670,7 @@
   $('#year').addEventListener('change', e => render(e.target.value));
   $('#download').addEventListener('click', downloadCard);
   $('#share').addEventListener('click', shareCard);
+  document.querySelectorAll('.fmt').forEach(b => b.addEventListener('click', () => setFormat(b.dataset.format)));
   $('#top').addEventListener('click', e => {
     if (e.target.closest('.twl-pick')) openPicker();
     else if (e.target.closest('.twl-reset')) forgetTwl();
