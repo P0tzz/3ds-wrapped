@@ -112,22 +112,48 @@
       sessions.push(ns);
     }
 
-    return sessions.map(s => ({
+    const out = sessions.map(s => ({
       game: s.titleId,
       titleId: s.titleId,
       start: fromEpoch2000(s.startTs),
       minutes: s.secs / 60,
     }));
+
+    // software library summary: lifetime totals per title
+    const LIB_OFFSET = 0xC3510;
+    out.library = [];
+    for (let i = 0; i < 256; i++) {
+      const off = LIB_OFFSET + i * 24;
+      const titleId = hex64(view, off);
+      if (titleId === '0000000000000000' || titleId === 'FFFFFFFFFFFFFFFF') continue;
+      const secs = view.getUint32(off + 8, true), launches = view.getUint16(off + 12, true);
+      if (!secs && !launches) continue;
+      out.library.push({ titleId, minutes: secs / 60, launches, firstDay: view.getUint16(off + 16, true) });
+    }
+    return out;
   }
 
   async function nameTitles(sessions) {
-    const ids = [...new Set(sessions.map(s => s.titleId))];
+    const lib = sessions.library || [];
+    const top = lib.reduce((a, b) => (!a || b.minutes > a.minutes ? b : a), null);
+    const ids = [...new Set(sessions.map(s => s.titleId).concat(top ? [top.titleId] : []))];
     const info = await TitleDB.info(ids);
     for (const s of sessions) {
       const t = info.get(s.titleId);
       s.game = t.name;
       s.code = t.code;
       s.platform = t.platform;
+    }
+    if (top) {
+      const t = info.get(top.titleId);
+      const firsts = lib.map(l => l.firstDay).filter(Boolean);
+      sessions.lifetime = {
+        totalMinutes: lib.reduce((a, l) => a + l.minutes, 0),
+        launches: lib.reduce((a, l) => a + l.launches, 0),
+        titles: lib.length,
+        since: firsts.length ? new Date(2000, 0, 1 + Math.min(...firsts)) : null,
+        top: { game: t.name, code: t.code, platform: t.platform, minutes: top.minutes, launches: top.launches },
+      };
     }
     return sessions;
   }

@@ -35,7 +35,7 @@
     try { bytes = fromBase64url(str); } catch { throw new Error('El código QR no es válido.'); }
     const r = reader(bytes);
     const version = r.u(1);
-    if (version !== 1 && version !== 2) throw new Error('Versión de datos no soportada. Actualiza la web o la app de la 3DS.');
+    if (version < 1 || version > 3) throw new Error('Versión de datos no soportada. Actualiza la web o la app de la 3DS.');
     const nm = () => (version >= 2 ? r.name() : null);
 
     const p = {
@@ -62,6 +62,20 @@
       p.dayLevels.push(b & 15);
       if (d + 1 < days) p.dayLevels.push(b >> 4);
     }
+
+    // v3: lifetime, steps and one row per year
+    if (version >= 3) {
+      const flags = r.u(1);
+      if (flags & 1) {
+        p.life = { minutes: r.u(4), launches: r.u(4), titles: r.u(2), firstDay: r.u(2),
+          tid: r.tid(), topMinutes: r.u(3), topLaunches: r.u(2), name: r.name() };
+      }
+      if (flags & 4) p.steps = { total: r.u(4), year: r.u(4) };
+      if (flags & 2) {
+        const count = r.u(1);
+        p.history = Array.from({ length: count }, () => ({ year: r.u(2), minutes: r.u(3), days: r.u(2), games: r.u(2) }));
+      }
+    }
     return p;
   }
 
@@ -69,10 +83,11 @@
   async function toStats(p) {
     const ids = new Set(p.top.map(t => t.tid));
     if (p.sessions) { ids.add(p.longest.tid); ids.add(p.first.tid); }
+    if (p.life && p.life.titles) ids.add(p.life.tid);
     const info = await TitleDB.info([...ids]);
     // names sent by the console fill the gaps of the eShop list (DS, homebrew…)
     const fromConsole = new Map();
-    for (const t of [...p.top, p.longest, p.first]) if (t.name) fromConsole.set(t.tid, t.name);
+    for (const t of [...p.top, p.longest, p.first, p.life].filter(Boolean)) if (t.name) fromConsole.set(t.tid, t.name);
     const name = tid => (info.get(tid).found ? info.get(tid).name : fromConsole.get(tid) || info.get(tid).name);
     const code = tid => info.get(tid).code;
     const platform = tid => info.get(tid).platform;
@@ -115,6 +130,15 @@
       forgotten,
       streak: { length: p.streak.length, from: date(p.streak.from), to: date(p.streak.from + p.streak.length - 1) },
       personality: Stats.personality(byHour, played ? weekend / played : 0),
+      lifetime: p.life && p.life.titles ? {
+        totalMinutes: p.life.minutes,
+        launches: p.life.launches,
+        titles: p.life.titles,
+        since: p.life.firstDay ? new Date(2000, 0, 1 + p.life.firstDay) : null,
+        top: { game: name(p.life.tid), code: code(p.life.tid), platform: platform(p.life.tid), minutes: p.life.topMinutes, launches: p.life.topLaunches },
+      } : null,
+      steps: p.steps || null,
+      history: p.history || [],
     };
   }
 

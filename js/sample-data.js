@@ -57,6 +57,8 @@
         }
       }
     }
+    // pedometer (made up, like the rest of the demo)
+    sessions.steps = { total: 2468135, byYear: { 2024: 412360, 2025: 538120, 2026: 467905 } };
     return sessions;
   }
 

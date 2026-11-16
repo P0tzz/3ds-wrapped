@@ -92,5 +92,37 @@
     };
   }
 
-  W.Stats = { compute, years, dayKey, personality };
+  // one row per year: minutes, days played, distinct games
+  function history(all) {
+    const by = new Map();
+    for (const s of all) {
+      const y = s.start.getFullYear();
+      const h = by.get(y) || { year: y, minutes: 0, days: new Set(), games: new Set() };
+      h.minutes += s.minutes;
+      h.days.add(dayKey(s.start));
+      h.games.add(s.game);
+      by.set(y, h);
+    }
+    return [...by.values()].sort((a, b) => a.year - b.year)
+      .map(h => ({ year: h.year, minutes: h.minutes, days: h.days.size, games: h.games.size }));
+  }
+
+  // all-time totals when the console's own summary is not available
+  function lifetime(all) {
+    if (!all.length) return null;
+    const games = new Map();
+    let total = 0, since = all[0].start;
+    for (const s of all) {
+      total += s.minutes;
+      if (s.start < since) since = s.start;
+      const g = games.get(s.game) || { game: s.game, code: s.code || null, platform: s.platform || '3ds', minutes: 0, launches: 0 };
+      g.minutes += s.minutes;
+      g.launches++;
+      games.set(s.game, g);
+    }
+    const top = [...games.values()].sort((a, b) => b.minutes - a.minutes)[0];
+    return { totalMinutes: total, launches: all.length, titles: games.size, since, top };
+  }
+
+  W.Stats = { compute, years, dayKey, personality, history, lifetime };
 })(window);
