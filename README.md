@@ -6,25 +6,25 @@ Resumen anual de tu historial de juego en 3DS, estilo "Wrapped".
 
 ![screenshot](docs/screenshot.png)
 
-## QuÃ© muestra
+## Qué muestra
 
-- Horas totales, juegos, dÃ­as jugados y partidas
+- Horas totales, juegos, días jugados y partidas
 - Top 10 de juegos
-- Horas por mes y por hora del dÃ­a
-- Mapa de calor del aÃ±o
-- Racha mÃ¡s larga, partida mÃ¡s larga, etc.
+- Horas por mes y por hora del día
+- Mapa de calor del año
+- Racha más larga, partida más larga, etc.
 - Tarjeta exportable a PNG
 
-Todo se procesa en local, no se sube nada a ningÃºn servidor.
+Todo se procesa en local, no se sube nada a ningún servidor.
 
 ## Uso
 
-**Desde la consola (lo mÃ¡s fÃ¡cil):** instala la [app para 3DS](homebrew/), Ã¡brela y escanea el QR con el mÃ³vil.
+**Desde la consola (lo más fácil):** instala la [app para 3DS](homebrew/), ábrela y escanea el QR con el móvil.
 
 **Desde el PC:** abre la web y carga el `pld.dat` de tu consola (o un `.json` / `.csv`).
-CÃ³mo sacar el `pld.dat` y el formato de los demÃ¡s archivos: [docs/FORMATO.md](docs/FORMATO.md).
+Cómo sacar el `pld.dat` y el formato de los demás archivos: [docs/FORMATO.md](docs/FORMATO.md).
 
-Para desarrollo cualquier servidor estÃ¡tico vale:
+Para desarrollo cualquier servidor estático vale:
 
 ```
 python -m http.server
@@ -34,20 +34,20 @@ python -m http.server
 
 - [x] Leer `pld.dat` (Activity Log) directamente
 - [x] App para 3DS con QR
-- [ ] Probar en consola real y con mÃ¡s `pld.dat` reales
-- [ ] Comparar aÃ±os
-- [ ] Tema claro
-- [ ] TraducciÃ³n al inglÃ©s
+- [x] Tema claro y oscuro (según el sistema)
+- [ ] Probar con más `pld.dat` reales
+- [ ] Comparar años
+- [ ] Traducción al inglés
 
 PRs bienvenidos.
 
-## CrÃ©ditos
+## Créditos
 
 - [HarshNarayanJha/3DS-ActivityLog](https://github.com/HarshNarayanJha/3DS-ActivityLog) por documentar el formato de `pld.dat`
 - [hax0kartik/3dsdb](https://github.com/hax0kartik/3dsdb) para los nombres de los juegos
 - [3dbrew](https://www.3dbrew.org/)
-- [Chart.js](https://www.chartjs.org/)
 - [html2canvas](https://html2canvas.hertzen.com/)
+- [IBM Plex](https://github.com/IBM/plex)
 
 ## Licencia
 
