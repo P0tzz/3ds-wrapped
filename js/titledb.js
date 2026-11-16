@@ -50,10 +50,29 @@
     try { map = await load(); } catch { map = new Map(); }
     const out = new Map();
     for (const id of titleIds) {
+      if (isDS(id)) { out.set(id, dsInfo(id)); continue; }
       const hit = map.get(id.slice(8));
-      out.set(id, hit ? { name: hit.name, code: hit.code || null, found: true } : { name: fallback(id), code: null, found: false });
+      out.set(id, hit
+        ? { name: hit.name, code: hit.code || null, platform: '3ds', found: true }
+        : { name: fallback(id), code: null, platform: '3ds', found: false });
     }
     return out;
+  }
+
+  // DS / DSi titles: 00048004 + the 4-letter game code in ASCII ("AMCE" = Mario Kart DS)
+  const isDS = id => id.startsWith('00048004');
+
+  function dsInfo(id) {
+    const hex = id.slice(8);
+    let code = '';
+    for (let i = 0; i < 8; i += 2) code += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
+    const valid = /^[A-Z0-9]{4}$/.test(code);
+    return {
+      name: valid ? `Juego de DS (${code})` : 'Juego de DS (flashcart u homebrew)',
+      code: valid ? code : null,
+      platform: 'ds',
+      found: false,
+    };
   }
 
   function fallback(id) {

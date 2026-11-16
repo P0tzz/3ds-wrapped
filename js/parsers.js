@@ -127,6 +127,7 @@
       const t = info.get(s.titleId);
       s.game = t.name;
       s.code = t.code;
+      s.platform = t.platform;
     }
     return sessions;
   }

@@ -55,7 +55,7 @@
       if (wd === 0 || wd === 6) weekend += s.minutes;
       if (!longest || s.minutes > longest.minutes) longest = s;
 
-      const g = byGame.get(s.game) || { game: s.game, code: s.code || null, minutes: 0, sessions: 0, first: s.start, last: s.start };
+      const g = byGame.get(s.game) || { game: s.game, code: s.code || null, platform: s.platform || '3ds', minutes: 0, sessions: 0, first: s.start, last: s.start };
       g.minutes += s.minutes;
       g.sessions += 1;
       g.last = s.start;

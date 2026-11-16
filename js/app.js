@@ -5,8 +5,8 @@
   const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
   // box art from GameTDB, by product code ("AMKE"); the last letter is the region
-  const COVER_URL = 'https://art.gametdb.com/3ds/box/';
-  const REGION_DIRS = { E: ['US', 'EN'], P: ['EN', 'US'], J: ['JA'], K: ['KO'], A: ['US', 'EN', 'JA'] };
+  const COVER_URL = { '3ds': 'https://art.gametdb.com/3ds/box/', ds: 'https://art.gametdb.com/ds/coverS/' };
+  const REGION_DIRS = { E: ['US', 'EN'], P: ['EN', 'US'], O: ['US', 'EN'], J: ['JA'], K: ['KO'], A: ['US', 'EN', 'JA'] };
 
   let sessions = [];
 
@@ -117,15 +117,16 @@
     return (words.slice(0, 2).map(w => w[0]).join('') || name.slice(0, 2)).toUpperCase();
   }
 
-  function coverUrls(code) {
+  function coverUrls(code, platform = '3ds') {
     if (!code) return [];
+    const base = COVER_URL[platform] || COVER_URL['3ds'];
     const dirs = REGION_DIRS[code[3]] || ['US', 'EN', 'JA'];
-    return [...new Set([...dirs, 'US', 'EN', 'JA'])].map(d => `${COVER_URL}${d}/${code}.png`);
+    return [...new Set([...dirs, 'US', 'EN', 'JA'])].map(d => `${base}${d}/${code}.png`);
   }
 
   // <img> that walks through the region folders and ends in a placeholder
   function cover(game) {
-    const urls = coverUrls(game.code);
+    const urls = coverUrls(game.code, game.platform);
     const ph = () => el('div', { class: 'cover-ph', text: initials(game.game) });
     if (!urls.length) return ph();
     const img = el('img', { class: 'cover', alt: game.game, loading: 'lazy', referrerpolicy: 'no-referrer' });
@@ -213,7 +214,7 @@
     const hero = $('#hero');
     if (!g) { hero.replaceChildren(); return; }
     const bg = el('div', { class: 'hero-bg' });
-    const url = coverUrls(g.code)[0];
+    const url = coverUrls(g.code, g.platform)[0];
     if (url) bg.style.backgroundImage = `url("${url}")`;
     hero.replaceChildren(
       bg,
