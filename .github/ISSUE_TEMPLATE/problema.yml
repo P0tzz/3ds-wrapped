@@ -1,0 +1,32 @@
+name: Algo no funciona
+description: Un error en la app de la 3DS o en la web
+labels: [bug]
+body:
+  - type: dropdown
+    id: donde
+    attributes:
+      label: ¿Dónde pasa?
+      options:
+        - App de la 3DS
+        - Web
+        - Las dos
+    validations:
+      required: true
+  - type: textarea
+    id: que
+    attributes:
+      label: ¿Qué pasa?
+      description: Qué esperabas ver y qué ves en su lugar.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión de la app
+      description: Aparece en la primera línea de diagnostico.txt (por ejemplo 0.3.1).
+  - type: textarea
+    id: diagnostico
+    attributes:
+      label: diagnostico.txt
+      description: Pega el contenido de sd:/3ds/3ds-wrapped/diagnostico.txt. Solo tiene los títulos y las horas jugadas.
+      render: text
