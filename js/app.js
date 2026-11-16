@@ -228,7 +228,18 @@
     input.focus();
     const titles = Object.entries(await TitleDB.dsTitles());
     const norm = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    const index = titles.map(([code, name]) => [code, TitleDB.cleanDS(name), norm(name)]);
+    // one entry per game: keep the regional version that suits a Spanish speaker best
+    // (last letter of the code: S Spain, P Europe, E USA, O worldwide…)
+    const REGION_RANK = 'SPEOXYZVWDFIHUJKC';
+    const rank = code => { const i = REGION_RANK.indexOf(code[3]); return i < 0 ? 99 : i; };
+    const byName = new Map();
+    for (const [code, raw] of titles) {
+      const name = TitleDB.cleanDS(raw);
+      const key = norm(name);
+      const prev = byName.get(key);
+      if (!prev || rank(code) < rank(prev[0])) byName.set(key, [code, name, key]);
+    }
+    const index = [...byName.values()];
 
     const show = () => {
       const q = norm(input.value.trim());
@@ -237,7 +248,11 @@
         return;
       }
       const words = q.split(/\s+/);
-      const hits = index.filter(([, , n]) => words.every(w => n.includes(w))).slice(0, 12);
+      // titles that start with the query first, then shorter titles
+      const hits = index
+        .filter(([, , n]) => words.every(w => n.includes(w)))
+        .sort((a, b) => (b[2].startsWith(words[0]) - a[2].startsWith(words[0])) || a[1].length - b[1].length)
+        .slice(0, 12);
       list.replaceChildren(...(hits.length ? hits.map(([code, name]) =>
         el('li', {}, el('button', { type: 'button', 'data-code': code }, [
           el('span', { class: 'pk-cover' }, cover({ game: name, code, platform: 'ds' })),
