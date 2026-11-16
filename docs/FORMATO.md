@@ -31,4 +31,17 @@ Kart Galáctico,2025-03-14T18:30,45
 
 ## pld.dat
 
-Sin implementar. Ver https://www.3dbrew.org/wiki/Activity_Log
+Es el archivo de guardado del Registro de actividad. Para sacarlo hace falta CFW y
+[JKSM](https://github.com/J-D-K/JKSM):
+
+1. En JKSM: *System Titles* → *Activity Log* → *SysSave Data* → *New*
+2. Copia `pld.dat` desde `SD:/JKSV/SysSave_Data/Activity_Log/<nombre>/`
+
+Notas:
+
+- La consola guarda el tiempo por bloques de una hora, así que las horas de inicio son aproximadas.
+  Las horas seguidas del mismo juego se juntan en una sola partida.
+- El archivo solo tiene IDs de título. Los nombres se buscan en las listas de
+  [3dsdb](https://github.com/hax0kartik/3dsdb) (se descargan al cargar el archivo).
+  Los juegos que no aparecen se muestran con su ID.
+- Estructura del archivo: [pld-structure.md](https://github.com/HarshNarayanJha/3DS-ActivityLog/blob/main/docs/data-extraction/pld-structure.md)

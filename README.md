@@ -19,8 +19,8 @@ Todo se procesa en local, no se sube nada a ningún servidor.
 
 ## Uso
 
-Abre `index.html` o la demo y carga un archivo `.json` o `.csv`.
-Hay ejemplos en [`ejemplos/`](ejemplos) y el formato está en [docs/FORMATO.md](docs/FORMATO.md).
+Abre `index.html` o la demo y carga el `pld.dat` de tu consola (o un `.json` / `.csv`).
+Cómo sacar el `pld.dat` y el formato de los demás archivos: [docs/FORMATO.md](docs/FORMATO.md).
 
 Para desarrollo cualquier servidor estático vale:
 
@@ -30,7 +30,8 @@ python -m http.server
 
 ## TODO
 
-- [ ] Leer `pld.dat` (Activity Log) directamente
+- [x] Leer `pld.dat` (Activity Log) directamente
+- [ ] Probar con más `pld.dat` reales
 - [ ] Comparar años
 - [ ] Tema claro
 - [ ] Traducción al inglés
@@ -39,7 +40,9 @@ PRs bienvenidos.
 
 ## Créditos
 
-- [3dbrew](https://www.3dbrew.org/) por la documentación del sistema
+- [HarshNarayanJha/3DS-ActivityLog](https://github.com/HarshNarayanJha/3DS-ActivityLog) por documentar el formato de `pld.dat`
+- [hax0kartik/3dsdb](https://github.com/hax0kartik/3dsdb) para los nombres de los juegos
+- [3dbrew](https://www.3dbrew.org/)
 - [Chart.js](https://www.chartjs.org/)
 - [html2canvas](https://html2canvas.hertzen.com/)
 
