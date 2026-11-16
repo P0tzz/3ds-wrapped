@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+  <a href="https://p0tzz.github.io/3ds-wrapped/#demo"><b>Ver la demo</b></a> ·
   <a href="https://p0tzz.github.io/3ds-wrapped/"><b>Abrir la web</b></a> ·
   <a href="https://github.com/P0tzz/3ds-wrapped/releases/latest"><b>Descargar la app</b></a> ·
   <a href="#preguntas-frecuentes">Preguntas frecuentes</a>
@@ -45,6 +46,9 @@ Necesitas una 3DS con CFW (Luma3DS) y el Homebrew Launcher.
 Más detalles, controles y solución de problemas: [guía de la app](homebrew/README.md).
 
 ## Capturas
+
+En las capturas cada juego aparece con sus iniciales. En la web se ve con su portada:
+**[abre la demo](https://p0tzz.github.io/3ds-wrapped/#demo)** para verlo con datos de ejemplo.
 
 <table>
   <tr>

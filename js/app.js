@@ -489,4 +489,5 @@
 
   const code = QRData.fromHash(location.hash);
   if (code) startFromQR(code);
+  else if (location.hash === '#demo') start(SampleData.generate());  // link from the README
 })();
