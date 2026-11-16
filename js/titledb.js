@@ -100,5 +100,5 @@
     return `Título ${id}`;
   }
 
-  W.TitleDB = { info };
+  W.TitleDB = { info, dsTitles: loadDS, cleanDS: n => cleanDS(n) };
 })(window);

@@ -196,7 +196,79 @@
     renderStats(Stats.compute(sessions, Number(year)));
   }
 
+  // ---- DS games launched from TWiLight Menu++ / a flashcart ----
+  // The console logs them without a game code, so the viewer can say which game it was.
+  // Stored only in this browser.
+  const TWL_KEY = '3dsw-twl-game';
+  const isTwlBucket = g => g && g.platform === 'ds' && (!g.code || g.twl);
+
+  function twlChoice() {
+    try { return JSON.parse(localStorage.getItem(TWL_KEY)); } catch { return null; }
+  }
+
+  function applyTwlChoice(s) {
+    const pick = twlChoice();
+    for (const g of [...s.games, s.longestSession, s.firstSession, s.forgotten]) {
+      if (!isTwlBucket(g)) continue;
+      g.twl = true;
+      if (pick) { g.game = `${pick.name} (vía TWiLight)`; g.code = pick.code; }
+      else { g.game = 'Juegos de DS (TWiLight / flashcart)'; g.code = null; }
+    }
+  }
+
+  let current = null;
+
+  async function openPicker() {
+    const box = $('#picker');
+    const input = $('#picker-q');
+    const list = $('#picker-list');
+    box.hidden = false;
+    input.value = '';
+    list.replaceChildren(el('li', { class: 'muted', text: 'Cargando lista de juegos…' }));
+    input.focus();
+    const titles = Object.entries(await TitleDB.dsTitles());
+    const norm = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const index = titles.map(([code, name]) => [code, TitleDB.cleanDS(name), norm(name)]);
+
+    const show = () => {
+      const q = norm(input.value.trim());
+      if (q.length < 2) {
+        list.replaceChildren(el('li', { class: 'muted', text: 'Escribe al menos 2 letras (por ejemplo «pokemon negro»).' }));
+        return;
+      }
+      const words = q.split(/\s+/);
+      const hits = index.filter(([, , n]) => words.every(w => n.includes(w))).slice(0, 12);
+      list.replaceChildren(...(hits.length ? hits.map(([code, name]) =>
+        el('li', {}, el('button', { type: 'button', 'data-code': code }, [
+          el('span', { class: 'pk-cover' }, cover({ game: name, code, platform: 'ds' })),
+          el('span', { text: name }),
+        ]))
+      ) : [el('li', { class: 'muted', text: 'No hay resultados.' })]));
+    };
+    input.oninput = show;
+    show();
+
+    list.onclick = e => {
+      const b = e.target.closest('button[data-code]');
+      if (!b) return;
+      const code = b.dataset.code;
+      const name = index.find(([c]) => c === code)[1];
+      try { localStorage.setItem(TWL_KEY, JSON.stringify({ code, name })); } catch { /* private mode */ }
+      closePicker();
+      if (current) renderStats(current);
+    };
+  }
+
+  function closePicker() { $('#picker').hidden = true; }
+
+  function forgetTwl() {
+    try { localStorage.removeItem(TWL_KEY); } catch { /* ignore */ }
+    if (current) renderStats(current);
+  }
+
   function renderStats(s) {
+    current = s;
+    applyTwlChoice(s);
     resetReveals();
     renderHero(s);
     renderTiles(s);
@@ -255,6 +327,10 @@
           el('div', { class: 'name', text: g.game }),
           el('div', { class: 'hours' }, [`${hours(g.minutes)} h`, el('small', { text: `${g.sessions} partidas` })]),
           el('div', { class: 'bar' }, el('i', { style: `width:${(g.minutes / max) * 100}%` })),
+          isTwlBucket(g) ? el('div', { class: 'twl-actions' }, [
+            el('button', { type: 'button', class: 'twl-pick', text: g.code ? 'Cambiar juego' : '¿Qué juego es?' }),
+            g.code ? el('button', { type: 'button', class: 'twl-reset', text: 'Quitar' }) : null,
+          ]) : null,
         ]),
       ]), 70 * i)
     ));
@@ -377,6 +453,13 @@
   $('#year').addEventListener('change', e => render(e.target.value));
   $('#download').addEventListener('click', downloadCard);
   $('#share').addEventListener('click', shareCard);
+  $('#top').addEventListener('click', e => {
+    if (e.target.closest('.twl-pick')) openPicker();
+    else if (e.target.closest('.twl-reset')) forgetTwl();
+  });
+  $('#picker-close').addEventListener('click', closePicker);
+  $('#picker').addEventListener('click', e => { if (e.target.id === 'picker') closePicker(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#picker').hidden) closePicker(); });
   $('#reset').addEventListener('click', () => {
     $('#results').hidden = true;
     $('#upload').hidden = false;

@@ -129,6 +129,18 @@
     </section>
   </main>
 
+  <div id="picker" class="picker" hidden>
+    <div class="picker-box panel" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+      <div class="picker-head">
+        <h3 id="picker-title">¿Qué juego de DS es?</h3>
+        <button id="picker-close" class="pill ghost" type="button">Cerrar</button>
+      </div>
+      <p class="picker-hint">Los juegos abiertos desde TWiLight Menu++ o un flashcart se guardan sin código, así que la consola no sabe cuál era. Elige el tuyo; se recuerda solo en este navegador.</p>
+      <input id="picker-q" type="search" placeholder="Busca tu juego…" autocomplete="off">
+      <ul id="picker-list" class="picker-list"></ul>
+    </div>
+  </div>
+
   <footer class="wrap">
     <div class="foot-brand"><img src="img/logo.svg" alt="" width="28" height="28">3DS Wrapped</div>
     <nav class="foot-links">
