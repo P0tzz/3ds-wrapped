@@ -1,5 +1,11 @@
 # Cambios
 
+## v0.6.0
+
+- **Tu Wrapped en la propia consola**: una presentación que pasas con A, con tus horas, tu juego del año, tu top 5, tu perfil, tu racha y toda tu 3DS. Al final, el QR.
+- Los juegos salen con **sus iconos del menú HOME** (también el homebrew).
+- Corregido: la petición del historial de pasos declaraba la mitad del tamaño necesario (fallo de libctru). En el emulador cerraba la app.
+
 ## v0.5.0
 
 - Versión **.cia**: se instala con FBI y aparece en el menú HOME con su icono y su banner.

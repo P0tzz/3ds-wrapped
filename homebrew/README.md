@@ -36,9 +36,11 @@ Para actualizar, instala o copia la versión nueva encima de la anterior.
 ## Uso
 
 1. Abre una vez la app **Registro de actividad** de la consola: el registro solo se actualiza al entrar en ella.
-2. Abre **3DS Wrapped**.
-3. Elige el año con **◀ ▶** (o **L / R**).
-4. Escanea el QR de la pantalla de arriba con la cámara del móvil.
+2. Abre **3DS Wrapped**. Empieza tu resumen como una presentación: pasa con **A** (o tocando la pantalla).
+   Tu juego del año y tu top 5 salen con **sus iconos de verdad**, los mismos del menú HOME.
+3. Al final llega la pantalla del QR. Escanéalo con el móvil para verlo en grande, con portadas, gráficas y la tarjeta para compartir.
+
+Diapositivas: tus horas · tu juego del año · tu top 5 · tu perfil · tu racha · toda tu 3DS · el QR.
 
 | Pantalla | Qué muestra |
 |---|---|
@@ -48,8 +50,11 @@ Para actualizar, instala o copia la versión nueva encima de la anterior.
 
 | Botón | Acción |
 |---|---|
-| ◀ ▶ / L R (o tocar las flechas) | Cambiar de año |
-| X (o tocar el botón de abajo) | Cambiar entre «Este año» y «Toda tu 3DS» |
+| A (o tocar la pantalla) | Siguiente diapositiva |
+| B | Diapositiva anterior |
+| SELECT | Ir directo al QR |
+| L / R | Cambiar de año |
+| X (en la pantalla del QR) | Cambiar entre «Este año» y «Toda tu 3DS» |
 | START | Salir |
 
 La app sale en español si la consola está en español, y en inglés en cualquier otro idioma.
