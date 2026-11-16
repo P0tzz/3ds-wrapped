@@ -36,10 +36,14 @@ int main(int argc, char **argv) {
     int ny = pld_years(chunks, count, years, 64);
 
     static YearStats ys;
+    static Lifetime lt;
     static char url[1600];
+    pld_lifetime(buf, chunks, count, &lt);
+    Extras ex = {&lt, true, 123456, 0};
     for (int i = 0; i < ny; i++) {
         pld_year_stats(chunks, count, years[i], &ys);
-        int len = pld_url(&ys, "https://p0tzz.github.io/3ds-wrapped/", fake_name, url, sizeof(url));
+        ex.stepsYear = 1000 * (i + 1);
+        int len = pld_url(&ys, &ex, "https://p0tzz.github.io/3ds-wrapped/", fake_name, url, sizeof(url));
         printf("%u %d %s\n", years[i], len, url);
     }
     free(chunks);

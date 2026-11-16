@@ -225,6 +225,82 @@ void pld_year_stats(const Chunk *chunks, int n, u16 year, YearStats *ys) {
     }
 }
 
+// ---- lifetime ----
+
+int pld_library(const u8 *buf, LibEntry *out, int max) {
+    int n = 0;
+    for (int i = 0; i < PLD_LIB_ENTRIES && n < max; i++) {
+        const u8 *e = buf + PLD_LIB_OFFSET + i * 24;
+        u64 tid;
+        memcpy(&tid, e, 8);
+        if (tid == 0 || tid == ~0ULL) continue;
+        LibEntry *l = &out[n];
+        l->tid = tid;
+        memcpy(&l->secs, e + 8, 4);
+        memcpy(&l->launches, e + 12, 2);
+        memcpy(&l->firstDay, e + 16, 2);
+        memcpy(&l->lastDay, e + 18, 2);
+        if (!l->secs && !l->launches) continue;
+        n++;
+    }
+    return n;
+}
+
+void pld_lifetime(const u8 *buf, const Chunk *chunks, int n, Lifetime *lt) {
+    memset(lt, 0, sizeof(*lt));
+    static LibEntry lib[PLD_LIB_ENTRIES];
+    int nl = buf ? pld_library(buf, lib, PLD_LIB_ENTRIES) : 0;
+
+    if (nl) {
+        lt->firstDay = 0xFFFF;
+        for (int i = 0; i < nl; i++) {
+            lt->totalSecs += lib[i].secs;
+            lt->launches += lib[i].launches;
+            lt->titles++;
+            if (lib[i].firstDay && lib[i].firstDay < lt->firstDay) lt->firstDay = lib[i].firstDay;
+            if (lib[i].secs > lt->topSecs) {
+                lt->topSecs = lib[i].secs;
+                lt->topTid = lib[i].tid;
+                lt->topLaunches = lib[i].launches;
+            }
+        }
+        if (lt->firstDay == 0xFFFF) lt->firstDay = 0;
+    } else if (n) {
+        // no summary: rebuild it from the hourly log
+        static u64 tids[MAX_TITLES];
+        static u32 secs[MAX_TITLES];
+        int nt = 0;
+        for (int i = 0; i < n; i++) {
+            int j = 0;
+            while (j < nt && tids[j] != chunks[i].tid) j++;
+            if (j == nt) {
+                if (nt == MAX_TITLES) continue;
+                tids[nt] = chunks[i].tid;
+                secs[nt++] = 0;
+            }
+            secs[j] += chunks[i].secs;
+            lt->totalSecs += chunks[i].secs;
+        }
+        lt->titles = nt;
+        lt->firstDay = chunks[0].ts / DAY;  // chunks are sorted
+        for (int j = 0; j < nt; j++) {
+            if (secs[j] > lt->topSecs) { lt->topSecs = secs[j]; lt->topTid = tids[j]; }
+        }
+    }
+
+    u16 years[64];
+    int ny = pld_years(chunks, n, years, 64);
+    static YearStats tmp;
+    for (int i = ny > MAX_HISTORY ? ny - MAX_HISTORY : 0; i < ny; i++) {
+        pld_year_stats(chunks, n, years[i], &tmp);
+        YearSummary *y = &lt->years[lt->nyears++];
+        y->year = years[i];
+        y->secs = tmp.totalSecs;
+        y->days = tmp.daysPlayed;
+        y->games = tmp.ntitles;
+    }
+}
+
 // ---- payload ----
 
 typedef struct {
@@ -265,9 +341,9 @@ static void put_name(Writer *w, u64 tid, NameFn names) {
     for (int i = 0; i < len; i++) put(w, (u8)n[i], 1);
 }
 
-static int build_payload(const YearStats *ys, NameFn names, u8 *buf, int cap_) {
+static int build_payload(const YearStats *ys, const Extras *ex, NameFn names, u8 *buf, int cap_) {
     Writer w = {buf, 0, cap_};
-    put(&w, 2, 1);  // version
+    put(&w, ex ? 3 : 2, 1);  // version
     put(&w, ys->year, 2);
     put(&w, minutes(ys->totalSecs), 4);
     put(&w, ys->sessions, 2);
@@ -314,14 +390,44 @@ static int build_payload(const YearStats *ys, NameFn names, u8 *buf, int cap_) {
         u8 hi = d + 1 < ys->daysInYear ? cap((minutes(ys->daySecs[d + 1]) + 14) / 15, 15) : 0;
         put(&w, lo | (hi << 4), 1);
     }
+
+    // v3: lifetime, steps and one row per year (see docs/QR.md)
+    if (ex) {
+        const Lifetime *lt = ex->lt;
+        u8 flags = (lt ? 1 : 0) | (lt && lt->nyears ? 2 : 0) | (ex->hasSteps ? 4 : 0);
+        put(&w, flags, 1);
+        if (flags & 1) {
+            put(&w, minutes(lt->totalSecs), 4);
+            put(&w, lt->launches, 4);
+            put(&w, lt->titles, 2);
+            put(&w, lt->firstDay, 2);
+            put_tid(&w, lt->topTid);
+            put(&w, cap(minutes(lt->topSecs), 0xFFFFFF), 3);
+            put(&w, lt->topLaunches, 2);
+            put_name(&w, lt->topTid, names);
+        }
+        if (flags & 4) {
+            put(&w, ex->stepsTotal, 4);
+            put(&w, ex->stepsYear, 4);
+        }
+        if (flags & 2) {
+            put(&w, lt->nyears, 1);
+            for (int i = 0; i < lt->nyears; i++) {
+                put(&w, lt->years[i].year, 2);
+                put(&w, cap(minutes(lt->years[i].secs), 0xFFFFFF), 3);
+                put(&w, lt->years[i].days, 2);
+                put(&w, lt->years[i].games, 2);
+            }
+        }
+    }
     return w.len;
 }
 
 static const char B64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-int pld_url(const YearStats *ys, const char *base, NameFn names, char *out, int outlen) {
+int pld_url(const YearStats *ys, const Extras *ex, const char *base, NameFn names, char *out, int outlen) {
     u8 data[1024];
-    int n = build_payload(ys, names, data, sizeof(data));
+    int n = build_payload(ys, ex, names, data, sizeof(data));
 
     int len = snprintf(out, outlen, "%s#w=", base);
     for (int i = 0; i < n && len + 4 < outlen; i += 3) {
