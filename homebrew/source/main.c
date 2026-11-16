@@ -45,7 +45,7 @@ static YearStats stats;
 static C2D_TextBuf tbuf;
 
 typedef struct {
-    char name[96];
+    char name[128];
     char hours[16];
     float ratio;
 } TopRow;
