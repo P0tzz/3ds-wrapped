@@ -23,6 +23,9 @@ solo actualiza el archivo cuando entras en él.
 
 El enlace también se guarda en `sd:/3ds/3ds-wrapped/enlace.txt`.
 
+Los nombres de los juegos (también DS, DSiWare y homebrew) se leen de la caché de iconos
+del Registro de actividad, así que aparecen igual que en la consola.
+
 La app solo **lee** el guardado del sistema, no escribe nada en él.
 Si no puede abrirlo, busca una copia en `sd:/3ds/3ds-wrapped/pld.dat`.
 
