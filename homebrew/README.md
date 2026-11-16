@@ -1,53 +1,100 @@
-# App para 3DS
+<p align="center">
+  <img src="icon.png" width="64" height="64" alt="">
+</p>
 
-Lee el Registro de actividad de la consola y muestra un QR con el resumen del año.
-Al escanearlo con el móvil se abre la web con tu Wrapped.
+<h1 align="center">3DS Wrapped · app para 3DS</h1>
+
+<p align="center">
+  Lee el Registro de actividad y muestra tu resumen del año como código QR.
+</p>
+
+<!-- APP_SCREENSHOT -->
+
+## Requisitos
+
+- Una 3DS, 2DS o New 3DS con **CFW (Luma3DS)**.
+- El **Homebrew Launcher**. Si seguiste [3ds.hacks.guide](https://3ds.hacks.guide/) ya lo tienes.
 
 ## Instalación
 
-Necesitas una 3DS con CFW (Luma3DS).
+1. Descarga **`3ds-wrapped.3dsx`** de la [última versión](https://github.com/P0tzz/3ds-wrapped/releases/latest).
+2. Copia el archivo a la carpeta **`3ds`** de la tarjeta SD (`sd:/3ds/3ds-wrapped.3dsx`).
+3. Abre el Homebrew Launcher y elige **3DS Wrapped**.
 
-1. Descarga `3ds-wrapped.3dsx` de [Releases](../../../releases)
-2. Cópialo a `sd:/3ds/`
-3. Ábrelo desde el Homebrew Launcher
+Para actualizar, sustituye el `.3dsx` por el nuevo.
 
-Si el Registro de actividad no tiene datos recientes, ábrelo una vez antes: la consola
-solo actualiza el archivo cuando entras en él.
+## Uso
 
-## Controles
+1. Abre una vez la app **Registro de actividad** de la consola: el registro solo se actualiza al entrar en ella.
+2. Abre **3DS Wrapped**.
+3. Elige el año con **◀ ▶** (o **L / R**).
+4. Escanea el QR de la pantalla de arriba con la cámara del móvil.
 
-| botón       | acción       |
-|-------------|--------------|
-| ◀ ▶ / L R   | cambiar año  |
-| START       | salir        |
+| Pantalla | Qué muestra |
+|---|---|
+| Arriba | El código QR con el enlace a tu Wrapped |
+| Abajo | Horas, juegos, días, partidas, racha y tu top 3 |
 
-El enlace también se guarda en `sd:/3ds/3ds-wrapped/enlace.txt`.
+| Botón | Acción |
+|---|---|
+| ◀ ▶ / L R | Cambiar de año |
+| START | Salir |
 
-Los nombres de los juegos (también DS, DSiWare y homebrew) se leen de la caché de iconos
-del Registro de actividad, así que aparecen igual que en la consola.
+## Archivos que crea
 
-La app solo **lee** el guardado del sistema, no escribe nada en él.
-Si no puede abrirlo, busca una copia en `sd:/3ds/3ds-wrapped/pld.dat`.
+Todos en `sd:/3ds/3ds-wrapped/`:
+
+| Archivo | Para qué |
+|---|---|
+| `enlace.txt` | El enlace del QR, por si el móvil no consigue leerlo |
+| `diagnostico.txt` | Los títulos del registro y si se encontró su nombre. Adjúntalo si abres un issue |
+
+La app **solo lee** el guardado del sistema. No escribe nada en él.
+
+## Problemas frecuentes
+
+**«No se pudo leer el Registro de actividad».**
+Abre el Registro de actividad una vez y vuelve a intentarlo. También puedes copiar tu `pld.dat` a `sd:/3ds/3ds-wrapped/pld.dat` y la app lo usará.
+
+**El móvil no lee el QR.**
+Sube el brillo, acerca el móvil y evita reflejos. Si hay muchos nombres en el QR, la app lo simplifica sola para que sea más fácil de leer.
+
+**Un juego sale con un código en vez del nombre.**
+Abre un [issue](https://github.com/P0tzz/3ds-wrapped/issues/new/choose) con tu `diagnostico.txt`.
+
+**Los juegos de DS de TWiLight Menu++ salen juntos.**
+La consola los guarda sin código de juego. En la web puedes decir qué juego era con «¿Qué juego es?».
 
 ## Compilar
 
 Con [devkitPro](https://devkitpro.org/wiki/Getting_Started) (devkitARM + libctru):
 
-```
+```sh
 make
 ```
 
-Para probar el parser en el PC:
+Probar el lector de `pld.dat` en el PC con datos inventados:
 
-```
+```sh
 gcc -Isource source/pld.c tests/pld_url.c -o pld_url
 ./pld_url tests/fixture-pld.bin
 ```
 
-`tests/fixture-pld.bin` son datos inventados.
+GitHub Actions compila la app y ejecuta esta prueba en cada cambio ([build.yml](../.github/workflows/build.yml)).
+
+## Cómo funciona por dentro
+
+| Archivo | Qué hace |
+|---|---|
+| `source/pld.c` | Lee `pld.dat`, junta las horas en partidas y calcula el resumen de cada año |
+| `source/names.c` | Busca el nombre de cada título en la caché del Registro de actividad o en la app instalada |
+| `source/main.c` | Pantallas, controles y dibujo del QR |
+| `source/qrcodegen/` | Generador de QR de [nayuki](https://github.com/nayuki/QR-Code-generator) (MIT) |
+
+El formato del enlace está en [docs/QR.md](../docs/QR.md).
 
 ## Créditos
 
 - [nayuki/QR-Code-generator](https://github.com/nayuki/QR-Code-generator) (MIT)
 - Formato de `pld.dat`: [HarshNarayanJha/3DS-ActivityLog](https://github.com/HarshNarayanJha/3DS-ActivityLog)
-- IDs del guardado del sistema por región: [Ryuzaki-MrL/Cthulhu](https://github.com/Ryuzaki-MrL/Cthulhu)
+- Guardado del sistema y caché de iconos: [Ryuzaki-MrL/Cthulhu](https://github.com/Ryuzaki-MrL/Cthulhu)
