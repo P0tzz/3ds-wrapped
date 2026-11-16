@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=20261116d">
+  <link rel="stylesheet" href="css/styles.css?v=20261116e">
 </head>
 <body>
   <nav class="topbar">
@@ -132,6 +132,24 @@
     </section>
   </main>
 
+  <div id="intro" class="intro-fx" hidden aria-live="polite">
+    <canvas aria-hidden="true"></canvas>
+    <div class="fx-spot" aria-hidden="true"></div>
+    <div class="fx-stage">
+      <p class="fx-line"></p>
+      <div class="fx-pre"></div>
+      <div class="fx-reveal">
+        <div class="fx-cover"></div>
+        <div class="fx-kicker"></div>
+        <h2 class="fx-title"></h2>
+        <div class="fx-hours"></div>
+        <div class="fx-sub"></div>
+      </div>
+      <p class="fx-hint">Toca para ver tu año</p>
+    </div>
+    <button type="button" class="fx-skip">Saltar</button>
+  </div>
+
   <div id="picker" class="picker" hidden>
     <div class="picker-box panel" role="dialog" aria-modal="true" aria-labelledby="picker-title">
       <div class="picker-head">
@@ -155,11 +173,12 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="js/sample-data.js?v=20261116d"></script>
-  <script src="js/titledb.js?v=20261116d"></script>
-  <script src="js/parsers.js?v=20261116d"></script>
-  <script src="js/qrdata.js?v=20261116d"></script>
-  <script src="js/stats.js?v=20261116d"></script>
-  <script src="js/app.js?v=20261116d"></script>
+  <script src="js/sample-data.js?v=20261116e"></script>
+  <script src="js/titledb.js?v=20261116e"></script>
+  <script src="js/parsers.js?v=20261116e"></script>
+  <script src="js/qrdata.js?v=20261116e"></script>
+  <script src="js/stats.js?v=20261116e"></script>
+  <script src="js/intro.js?v=20261116e"></script>
+  <script src="js/app.js?v=20261116e"></script>
 </body>
 </html>

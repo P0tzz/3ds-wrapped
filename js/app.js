@@ -174,6 +174,12 @@
     const ys = Stats.years(sessions);
     showResults(ys);
     render(ys[0]);
+    playIntro();
+  }
+
+  // full-screen reveal of the game of the year (js/intro.js)
+  function playIntro() {
+    if (window.Intro && current) Intro.play(current, { cover });
   }
 
   // summary coming from the 3DS app QR code
@@ -184,6 +190,7 @@
       const s = await QRData.toStats(QRData.decode(code));
       showResults([s.year]);
       renderStats(s);
+      playIntro();
     } catch (e) {
       $('#upload').hidden = false;
       showError(e.message);
@@ -318,6 +325,7 @@
             el('div', {}, [counter(g.sessions), el('span', { text: 'partidas' })]),
             el('div', {}, [counter(Math.round((g.minutes / Math.max(1, s.totalMinutes)) * 100), '%'), el('span', { text: 'de tu tiempo' })]),
           ]), 300),
+          reveal(el('button', { type: 'button', class: 'replay-intro', text: '▶ Ver la intro otra vez' }), 380),
         ]),
       ])
     );
@@ -670,6 +678,7 @@
   $('#year').addEventListener('change', e => render(e.target.value));
   $('#download').addEventListener('click', downloadCard);
   $('#share').addEventListener('click', shareCard);
+  $('#hero').addEventListener('click', e => { if (e.target.closest('.replay-intro')) playIntro(); });
   document.querySelectorAll('.fmt').forEach(b => b.addEventListener('click', () => setFormat(b.dataset.format)));
   $('#top').addEventListener('click', e => {
     if (e.target.closest('.twl-pick')) openPicker();
