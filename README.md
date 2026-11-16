@@ -4,6 +4,8 @@
 
 <h1 align="center">3DS Wrapped</h1>
 
+<p align="center"><a href="README.en.md">English</a> · <b>Español</b></p>
+
 <p align="center">
   Tu año en la 3DS al estilo «Wrapped»: juegos más jugados, horas, rachas y una tarjeta para compartir.
 </p>
@@ -39,9 +41,8 @@ Los datos van dentro del propio enlace del QR. No hay cuentas ni servidores: nad
 
 Necesitas una 3DS con CFW (Luma3DS) y el Homebrew Launcher.
 
-1. Descarga **`3ds-wrapped.3dsx`** de la [última versión](https://github.com/P0tzz/3ds-wrapped/releases/latest).
-2. Cópialo a la carpeta **`3ds`** de la tarjeta SD.
-3. Ábrelo desde el Homebrew Launcher.
+- **Con FBI:** descarga **`3ds-wrapped.cia`** de la [última versión](https://github.com/P0tzz/3ds-wrapped/releases/latest), instálalo y ábrelo desde el menú HOME.
+- **Con el Homebrew Launcher:** descarga **`3ds-wrapped.3dsx`** y cópialo a la carpeta **`3ds`** de la SD.
 
 Más detalles, controles y solución de problemas: [guía de la app](homebrew/README.md).
 
@@ -72,7 +73,12 @@ Más detalles, controles y solución de problemas: [guía de la app](homebrew/RE
 - Tu juego del año y tu biblioteca, con la portada de cada juego.
 - Horas por mes y por hora del día, y un calendario con todo el año.
 - Racha más larga, partida más larga, día con más juego, primer juego del año y el más olvidado.
-- Una tarjeta para descargar o compartir directamente desde el móvil.
+- **Año contra año**: cuánto más (o menos) jugaste que el año anterior.
+- **10 medallas** según cómo juegas: Noctámbulo, Maratón, Fiel, Coleccionista…
+- **Toda tu 3DS**: horas desde que tienes la consola, veces que abriste cada juego y los **pasos** que contó el podómetro.
+- Una intro animada distinta según tu juego más jugado.
+- Una tarjeta para descargar o compartir desde el móvil, en formato publicación o historia.
+- En español y en inglés.
 
 Reconoce juegos de 3DS, de DS, DSiWare, homebrew (FBI, Checkpoint, PKSM…) y apps del sistema.
 

@@ -17,11 +17,21 @@
 
 ## Instalación
 
+Hay dos formas. Elige una:
+
+**Con FBI (aparece en el menú HOME)**
+
+1. Descarga **`3ds-wrapped.cia`** de la [última versión](https://github.com/P0tzz/3ds-wrapped/releases/latest) y cópialo a la SD.
+2. Abre **FBI** → *SD* → el archivo → *Install CIA*.
+3. Ábrelo desde el menú HOME, con su icono y su banner.
+
+**Con el Homebrew Launcher**
+
 1. Descarga **`3ds-wrapped.3dsx`** de la [última versión](https://github.com/P0tzz/3ds-wrapped/releases/latest).
-2. Copia el archivo a la carpeta **`3ds`** de la tarjeta SD (`sd:/3ds/3ds-wrapped.3dsx`).
+2. Cópialo a la carpeta **`3ds`** de la tarjeta SD (`sd:/3ds/3ds-wrapped.3dsx`).
 3. Abre el Homebrew Launcher y elige **3DS Wrapped**.
 
-Para actualizar, sustituye el `.3dsx` por el nuevo.
+Para actualizar, instala o copia la versión nueva encima de la anterior.
 
 ## Uso
 
@@ -33,12 +43,16 @@ Para actualizar, sustituye el `.3dsx` por el nuevo.
 | Pantalla | Qué muestra |
 |---|---|
 | Arriba | El código QR con el enlace a tu Wrapped |
-| Abajo | Horas, juegos, días, partidas, racha y tu top 3 |
+| Abajo · Este año | Horas, juegos, días, racha y tu top 3 |
+| Abajo · Toda tu 3DS | Horas desde siempre, títulos, veces que abriste algo, pasos y tu juego de siempre |
 
 | Botón | Acción |
 |---|---|
-| ◀ ▶ / L R | Cambiar de año |
+| ◀ ▶ / L R (o tocar las flechas) | Cambiar de año |
+| X (o tocar el botón de abajo) | Cambiar entre «Este año» y «Toda tu 3DS» |
 | START | Salir |
+
+La app sale en español si la consola está en español, y en inglés en cualquier otro idioma.
 
 ## Archivos que crea
 

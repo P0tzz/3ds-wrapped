@@ -1,5 +1,14 @@
 # Cambios
 
+## v0.5.0
+
+- Versión **.cia**: se instala con FBI y aparece en el menú HOME con su icono y su banner.
+- Página **«Toda tu 3DS»** (botón X): horas desde siempre, títulos, veces que abriste algo, pasos y tu juego de siempre.
+- Lee los **pasos** del podómetro (total y por año).
+- El QR lleva también el resumen de toda la vida, los pasos y una fila por año (enlace v3).
+- La app sale en inglés si la consola no está en español.
+- Web: año contra año, 10 medallas, sección «Toda tu 3DS» y versión en inglés.
+
 ## v0.4.0
 
 - Interfaz gráfica nueva, con el mismo estilo que la web.
