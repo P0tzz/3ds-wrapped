@@ -47,6 +47,7 @@ PRs bienvenidos.
 - [hax0kartik/3dsdb](https://github.com/hax0kartik/3dsdb) para los nombres de los juegos
 - [3dbrew](https://www.3dbrew.org/)
 - [GameTDB](https://www.gametdb.com/) para las portadas (se cargan desde su web, no están en el repo)
+  y para los nombres de los juegos de DS (`data/ds-titles.json`, código → título)
 - [html2canvas](https://html2canvas.hertzen.com/)
 - Fuente [Dosis](https://fonts.google.com/specimen/Dosis)
 

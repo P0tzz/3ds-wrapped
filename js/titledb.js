@@ -45,12 +45,26 @@
     return map;
   }
 
+  // DS code -> name (data/ds-titles.json, from GameTDB), only loaded when there are DS titles
+  let dsNames = null;
+  async function loadDS() {
+    if (dsNames) return dsNames;
+    try {
+      const res = await fetch('data/ds-titles.json');
+      dsNames = res.ok ? await res.json() : {};
+    } catch {
+      dsNames = {};
+    }
+    return dsNames;
+  }
+
   async function info(titleIds) {
     let map;
     try { map = await load(); } catch { map = new Map(); }
+    const ds = titleIds.some(isDS) ? await loadDS() : {};
     const out = new Map();
     for (const id of titleIds) {
-      if (isDS(id)) { out.set(id, dsInfo(id)); continue; }
+      if (isDS(id)) { out.set(id, dsInfo(id, ds)); continue; }
       const hit = map.get(id.slice(8));
       out.set(id, hit
         ? { name: hit.name, code: hit.code || null, platform: '3ds', found: true }
@@ -62,18 +76,24 @@
   // DS / DSi titles: 00048004 + the 4-letter game code in ASCII ("AMCE" = Mario Kart DS)
   const isDS = id => id.startsWith('00048004');
 
-  function dsInfo(id) {
+  function dsInfo(id, names) {
     const hex = id.slice(8);
     let code = '';
     for (let i = 0; i < 8; i += 2) code += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
     const valid = /^[A-Z0-9]{4}$/.test(code);
+    // games launched from TWiLight Menu++ or a flashcart are logged without a game code
+    if (!valid) return { name: 'Juegos de DS (TWiLight / flashcart)', code: null, platform: 'ds', found: true };
+    const known = names[code];
     return {
-      name: valid ? `Juego de DS (${code})` : 'Juego de DS (flashcart u homebrew)',
-      code: valid ? code : null,
+      name: known ? cleanDS(known) : `Juego de DS (${code})`,
+      code,
       platform: 'ds',
-      found: false,
+      found: !!known,
     };
   }
+
+  // "Pokémon HeartGold Version" -> "Pokémon HeartGold"
+  const cleanDS = n => n.replace(/\s+Version$/i, '').trim();
 
   function fallback(id) {
     if (id.startsWith('00040010') || id.startsWith('00040030')) return `App del sistema (${id.slice(8)})`;
