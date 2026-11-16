@@ -17,14 +17,14 @@ APP_DESCRIPTION := Tu resumen anual de juego
 APP_AUTHOR      := P0tzz
 
 WRAPPED_URL     ?= https://p0tzz.github.io/3ds-wrapped/
-APP_VERSION     ?= 0.3.1
+APP_VERSION     ?= 0.4.0
 
 ARCH     := -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 CFLAGS   := -g -Wall -O2 -mword-relocations -ffunction-sections $(ARCH) $(INCLUDE) -D__3DS__ \
             -DWRAPPED_URL=\"$(WRAPPED_URL)\" -DAPP_VERSION=\"$(APP_VERSION)\"
 ASFLAGS  := -g $(ARCH)
 LDFLAGS   = -specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
-LIBS     := -lctru -lm
+LIBS     := -lcitro2d -lcitro3d -lctru -lm
 LIBDIRS  := $(CTRULIB)
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
