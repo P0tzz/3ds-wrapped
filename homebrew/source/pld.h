@@ -75,5 +75,11 @@ int pld_years(const Chunk *chunks, int n, u16 *years, int max);
 
 void pld_year_stats(const Chunk *chunks, int n, u16 year, YearStats *ys);
 
-// "<base url>#w=<base64url payload>", see docs/QR.md
-int pld_url(const YearStats *ys, const char *base, char *out, int outlen);
+// title id -> UTF-8 name, or NULL
+typedef const char *(*NameFn)(u64 tid);
+
+// titles the website probably can't name by itself (DS, DSiWare, homebrew, demos, system)
+bool pld_needs_name(u64 tid);
+
+// "<base url>#w=<base64url payload>", see docs/QR.md. `names` may be NULL.
+int pld_url(const YearStats *ys, const char *base, NameFn names, char *out, int outlen);

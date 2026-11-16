@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "names.h"
 #include "pld.h"
 #include "qrcodegen.h"
 
@@ -16,7 +17,7 @@
 
 static u8 qr[qrcodegen_BUFFER_LEN_MAX];
 static u8 qrTemp[qrcodegen_BUFFER_LEN_MAX];
-static char url[1024];
+static char url[1600];
 static int qrScale;
 
 static YearStats stats;
@@ -53,17 +54,21 @@ static void save_link(void) {
     fclose(f);
 }
 
+static bool encode(NameFn fn) {
+    pld_url(&stats, WRAPPED_URL, fn, url, sizeof(url));
+    qrScale = 0;
+    if (!qrcodegen_encodeText(url, qrTemp, qr, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN, qrcodegen_VERSION_MAX,
+                              qrcodegen_Mask_AUTO, true))
+        return false;
+    qrScale = TOP_H / (qrcodegen_getSize(qr) + 8);
+    return qrScale >= 2;
+}
+
 static void build(const Chunk *chunks, int n, u16 year) {
     pld_year_stats(chunks, n, year, &stats);
-    pld_url(&stats, WRAPPED_URL, url, sizeof(url));
+    // names make the code denser; drop them if the modules would get too small to scan
+    if (!encode(names_get)) encode(NULL);
     save_link();
-
-    qrScale = 0;
-    if (qrcodegen_encodeText(url, qrTemp, qr, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN, qrcodegen_VERSION_MAX,
-                             qrcodegen_Mask_AUTO, true)) {
-        int size = qrcodegen_getSize(qr) + 8;
-        qrScale = TOP_H / size;
-    }
     // drawn once per change, redrawing every frame tears on a single buffer
     draw_qr();
     gfxFlushBuffers();
@@ -82,11 +87,20 @@ static void print_screen(const char *source, u16 *years, int nyears, int sel) {
     printf("  Partidas        %u\n", stats.sessions);
     printf("  Racha           %u d\xA1" "as\n\n", stats.streakLen);
 
+    for (int i = 0; i < 3 && i < stats.ntitles; i++) {
+        const TitleStat *t = &stats.titles[i];
+        const char *n = names_get(t->tid);
+        char ascii[26];
+        if (n) names_ascii(n, ascii, sizeof(ascii));
+        else snprintf(ascii, sizeof(ascii), "%08lX", (unsigned long)(u32)t->tid);
+        printf("  %d. %-25s\n     %lu h\n", i + 1, ascii, (unsigned long)(t->secs / 3600));
+    }
+    printf("\n");
+
     if (qrScale) {
         printf("  Escanea el QR de arriba con\n");
-        printf("  la c\xA0mara del m\xA2vil.\n\n");
-        printf("  El enlace tambi\x82n est\xA0 en\n");
-        printf("  sd:/3ds/3ds-wrapped/enlace.txt\n");
+        printf("  la c\xA0mara del m\xA2vil.\n");
+        printf("  Enlace: sd:/3ds/3ds-wrapped/\n          enlace.txt\n");
     } else {
         printf("  \x1b[31mNo cabe el QR.\x1b[0m\n");
     }
@@ -101,6 +115,7 @@ int main(void) {
 
     const char *source = NULL;
     u8 *buf = pld_load(&source);
+    names_init();
     bool loaded = buf != NULL;
     Chunk *chunks = NULL;
     int n = 0, nyears = 0, sel = 0;
@@ -152,6 +167,7 @@ int main(void) {
     }
 
     free(chunks);
+    names_exit();
     gfxExit();
     return 0;
 }

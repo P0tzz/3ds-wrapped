@@ -5,6 +5,13 @@
 
 #include "pld.h"
 
+// stand-in for the console's name cache
+static const char *fake_name(u64 tid) {
+    static char buf[64];
+    snprintf(buf, sizeof(buf), "Juego de prueba %08X ñ", (unsigned)(u32)tid);
+    return buf;
+}
+
 int main(int argc, char **argv) {
     if (argc < 2) {
         fprintf(stderr, "uso: %s pld.dat\n", argv[0]);
@@ -29,10 +36,10 @@ int main(int argc, char **argv) {
     int ny = pld_years(chunks, count, years, 64);
 
     static YearStats ys;
-    static char url[1024];
+    static char url[1600];
     for (int i = 0; i < ny; i++) {
         pld_year_stats(chunks, count, years[i], &ys);
-        int len = pld_url(&ys, "https://p0tzz.github.io/3ds-wrapped/", url, sizeof(url));
+        int len = pld_url(&ys, "https://p0tzz.github.io/3ds-wrapped/", fake_name, url, sizeof(url));
         printf("%u %d %s\n", years[i], len, url);
     }
     free(chunks);

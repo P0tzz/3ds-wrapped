@@ -245,9 +245,28 @@ static void put_tid(Writer *w, u64 tid) {
     put(w, (u32)tid, 4);
 }
 
-static int build_payload(const YearStats *ys, u8 *buf, int cap_) {
+#define MAX_NAME_BYTES 24
+
+bool pld_needs_name(u64 tid) {
+    u32 hi = tid >> 32;
+    u32 unique = ((u32)tid >> 8) & 0xFFFFF;
+    return hi != 0x00040000 || unique >= 0xF0000;
+}
+
+static void put_name(Writer *w, u64 tid, NameFn names) {
+    const char *n = (names && pld_needs_name(tid)) ? names(tid) : NULL;
+    int len = n ? (int)strlen(n) : 0;
+    if (len > MAX_NAME_BYTES) {
+        len = MAX_NAME_BYTES;
+        while (len > 0 && ((u8)n[len] & 0xC0) == 0x80) len--;  // don't cut a UTF-8 sequence
+    }
+    put(w, len, 1);
+    for (int i = 0; i < len; i++) put(w, (u8)n[i], 1);
+}
+
+static int build_payload(const YearStats *ys, NameFn names, u8 *buf, int cap_) {
     Writer w = {buf, 0, cap_};
-    put(&w, 1, 1);  // version
+    put(&w, 2, 1);  // version
     put(&w, ys->year, 2);
     put(&w, minutes(ys->totalSecs), 4);
     put(&w, ys->sessions, 2);
@@ -262,6 +281,7 @@ static int build_payload(const YearStats *ys, u8 *buf, int cap_) {
         put(&w, cap(minutes(t->secs), 0xFFFFFF), 3);
         put(&w, t->sessions, 2);
         put(&w, t->lastDoy, 2);
+        put_name(&w, t->tid, names);
     }
 
     u32 maxHour = 1;
@@ -280,10 +300,12 @@ static int build_payload(const YearStats *ys, u8 *buf, int cap_) {
     put(&w, cap(minutes(ys->longestSecs), 0xFFFF), 2);
     put(&w, ys->hasSessions ? (ys->longestStart - from) / DAY : 0, 2);
     put(&w, (ys->longestStart % DAY) / HOUR, 1);
+    put_name(&w, ys->longestTid, names);
 
     put_tid(&w, ys->firstTid);
     put(&w, ys->hasSessions ? (ys->firstStart - from) / DAY : 0, 2);
     put(&w, (ys->firstStart % DAY) / HOUR, 1);
+    put_name(&w, ys->firstTid, names);
 
     // one nibble per day: ceil(minutes / 15), max 15
     for (int d = 0; d < ys->daysInYear; d += 2) {
@@ -296,9 +318,9 @@ static int build_payload(const YearStats *ys, u8 *buf, int cap_) {
 
 static const char B64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-int pld_url(const YearStats *ys, const char *base, char *out, int outlen) {
-    u8 data[512];
-    int n = build_payload(ys, data, sizeof(data));
+int pld_url(const YearStats *ys, const char *base, NameFn names, char *out, int outlen) {
+    u8 data[1024];
+    int n = build_payload(ys, names, data, sizeof(data));
 
     int len = snprintf(out, outlen, "%s#w=", base);
     for (int i = 0; i < n && len + 4 < outlen; i += 3) {
