@@ -17,15 +17,21 @@ static u64 tids[IDB_COUNT];
 static u8 raw[IDB_COUNT * 16];
 static char name[SHORT_NAME_CHARS * 3 + 1];
 
+// diagnostics
+static Result rArch, rIdbt, rIdbtRead, rIdb;
+static u32 idbtBytes;
+
 bool names_init(void) {
     u32 path[3] = {MEDIATYPE_NAND, 0xF000000B, 0x00048000};
-    if (R_FAILED(FSUSER_OpenArchive(&arch, ARCHIVE_SHARED_EXTDATA, (FS_Path){PATH_BINARY, sizeof(path), path})))
-        return false;
+    rArch = FSUSER_OpenArchive(&arch, ARCHIVE_SHARED_EXTDATA, (FS_Path){PATH_BINARY, sizeof(path), path});
+    if (R_FAILED(rArch)) return false;
 
     Handle t;
     u32 read = 0;
-    if (R_FAILED(FSUSER_OpenFile(&t, arch, fsMakePath(PATH_ASCII, "/idbt.dat"), FS_OPEN_READ, 0))) goto fail;
-    Result res = FSFILE_Read(t, &read, 0, raw, sizeof(raw));
+    rIdbt = FSUSER_OpenFile(&t, arch, fsMakePath(PATH_ASCII, "/idbt.dat"), FS_OPEN_READ, 0);
+    if (R_FAILED(rIdbt)) goto fail;
+    Result res = rIdbtRead = FSFILE_Read(t, &read, 0, raw, sizeof(raw));
+    idbtBytes = read;
     FSFILE_Close(t);
     if (R_FAILED(res)) goto fail;
     for (u32 i = 0; i < IDB_COUNT; i++) {
@@ -33,7 +39,8 @@ bool names_init(void) {
         if ((i + 1) * 16 <= read) memcpy(&tids[i], raw + i * 16 + 8, 8);
     }
 
-    if (R_FAILED(FSUSER_OpenFile(&idb, arch, fsMakePath(PATH_ASCII, "/idb.dat"), FS_OPEN_READ, 0))) goto fail;
+    rIdb = FSUSER_OpenFile(&idb, arch, fsMakePath(PATH_ASCII, "/idb.dat"), FS_OPEN_READ, 0);
+    if (R_FAILED(rIdb)) goto fail;
 
     if (R_SUCCEEDED(cfguInit())) {
         CFGU_GetSystemLanguage(&lang);
@@ -78,6 +85,23 @@ const char *names_get(u64 tid) {
         return NULL;
     }
     return NULL;
+}
+
+void names_dump(FILE *f) {
+    fprintf(f, "[cache de nombres]\n");
+    fprintf(f, "archivo extdata: %08lX  idbt: %08lX  lectura: %08lX (%lu bytes)  idb: %08lX  idioma: %u\n",
+            rArch, rIdbt, rIdbtRead, idbtBytes, rIdb, lang);
+    if (!ready) return;
+    int count = 0;
+    for (u32 i = 0; i < IDB_COUNT; i++) {
+        if (!tids[i] || tids[i] == ~0ULL) continue;
+        u64 unk;
+        memcpy(&unk, raw + i * 16, 8);
+        bool ok = read_name(i, lang) || read_name(i, 1);
+        fprintf(f, "%3lu  %016llX  %016llX  %s\n", i, tids[i], unk, ok ? name : "(sin nombre)");
+        count++;
+    }
+    fprintf(f, "entradas: %d\n", count);
 }
 
 static const char LATIN1[] =  // U+00C0..U+00FF

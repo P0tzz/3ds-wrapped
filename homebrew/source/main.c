@@ -8,6 +8,10 @@
 #include "pld.h"
 #include "qrcodegen.h"
 
+#ifndef APP_VERSION
+#define APP_VERSION "dev"
+#endif
+
 #ifndef WRAPPED_URL
 #define WRAPPED_URL "https://p0tzz.github.io/3ds-wrapped/"
 #endif
@@ -62,6 +66,37 @@ static bool encode(NameFn fn) {
         return false;
     qrScale = TOP_H / (qrcodegen_getSize(qr) + 8);
     return qrScale >= 2;
+}
+
+// sd:/3ds/3ds-wrapped/diagnostico.txt: every title in the log and whether it has a name
+static void write_diagnostics(const char *source, const Chunk *chunks, int n) {
+    FILE *f = fopen("sdmc:/3ds/3ds-wrapped/diagnostico.txt", "w");
+    if (!f) return;
+    fprintf(f, "3DS Wrapped " APP_VERSION "\n");
+    fprintf(f, "datos: %s, %d bloques de una hora\n\n", source ? source : "(ninguno)", n);
+
+    static u64 tids[MAX_TITLES];
+    static u32 secs[MAX_TITLES];
+    int nt = 0;
+    for (int i = 0; i < n; i++) {
+        int j = 0;
+        while (j < nt && tids[j] != chunks[i].tid) j++;
+        if (j == nt) {
+            if (nt == MAX_TITLES) continue;
+            tids[nt] = chunks[i].tid;
+            secs[nt++] = 0;
+        }
+        secs[j] += chunks[i].secs;
+    }
+    fprintf(f, "[titulos en el registro]\n");
+    for (int j = 0; j < nt; j++) {
+        const char *nm = names_get(tids[j]);
+        fprintf(f, "%016llX  %7.1f h  %s%s\n", tids[j], secs[j] / 3600.0, nm ? nm : "(sin nombre)",
+                pld_needs_name(tids[j]) ? "  [va en el QR]" : "");
+    }
+    fprintf(f, "titulos: %d\n\n", nt);
+    names_dump(f);
+    fclose(f);
 }
 
 static void build(const Chunk *chunks, int n, u16 year) {
@@ -126,6 +161,9 @@ int main(void) {
         free(buf);
         nyears = pld_years(chunks, n, years, 64);
     }
+    mkdir("sdmc:/3ds", 0777);
+    mkdir("sdmc:/3ds/3ds-wrapped", 0777);
+    write_diagnostics(source, chunks, n);
 
     if (!nyears) {
         printf("\x1b[1;2H\x1b[31m3DS Wrapped\x1b[0m\n\n");
