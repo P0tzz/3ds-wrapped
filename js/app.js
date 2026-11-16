@@ -32,10 +32,15 @@
 
   async function loadFile(file) {
     showError('');
+    const status = $('#status');
+    const setStatus = msg => { status.textContent = msg; status.hidden = !msg; };
+    setStatus('Leyendo archivo…');
     try {
-      start(await Parsers.parseFile(file));
+      start(await Parsers.parseFile(file, setStatus));
     } catch (e) {
       showError(e.message);
+    } finally {
+      setStatus('');
     }
   }
 

@@ -26,10 +26,11 @@
         <input type="file" id="file" accept=".json,.csv,.dat" hidden>
         <strong>Arrastra tu archivo aquí</strong>
         <span>o haz clic para elegirlo</span>
-        <small>Formatos: JSON y CSV · <code>pld.dat</code> en desarrollo</small>
+        <small><code>pld.dat</code> del Registro de actividad, JSON o CSV</small>
       </label>
       <div class="or"><span>o</span></div>
       <button id="demo" class="btn">Probar con datos de ejemplo</button>
+      <p id="status" class="status" role="status" hidden></p>
       <p id="error" class="error" role="alert" hidden></p>
       <p class="privacy">🔒 Todo se procesa en tu navegador. Tus datos no se suben a ningún sitio.</p>
     </section>
@@ -89,6 +90,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="js/sample-data.js"></script>
+  <script src="js/titledb.js"></script>
   <script src="js/parsers.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/app.js"></script>
