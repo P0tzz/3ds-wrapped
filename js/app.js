@@ -10,6 +10,93 @@
 
   let sessions = [];
 
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- motion helpers ----
+  function reveal(node, delay = 0) {
+    node.classList.add('reveal');
+    node.style.setProperty('--d', `${delay}ms`);
+    return node;
+  }
+
+  function countUp(node) {
+    if (node.dataset.done) return;
+    node.dataset.done = '1';
+    const target = Number(node.dataset.count);
+    const suffix = node.dataset.suffix || '';
+    const fmt = v => Math.round(v).toLocaleString('es-ES') + suffix;
+    if (reducedMotion) { node.textContent = fmt(target); return; }
+    const t0 = performance.now(), dur = 1400;
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur);
+      node.textContent = fmt(target * (1 - Math.pow(2, -10 * p)));
+      if (p < 1) requestAnimationFrame(step);
+      else node.textContent = fmt(target);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function counter(value, suffix = '') {
+    return el('b', { 'data-count': value, 'data-suffix': suffix, text: '0' + suffix });
+  }
+
+  const io = 'IntersectionObserver' in window
+    ? new IntersectionObserver(entries => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add('in');
+          e.target.querySelectorAll('[data-count]').forEach(countUp);
+          if (e.target.matches('[data-count]')) countUp(e.target);
+          io.unobserve(e.target);
+        }
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' })
+    : null;
+
+  function observeReveals() {
+    document.querySelectorAll('#results .reveal:not(.in)').forEach(n => {
+      if (io && !reducedMotion) io.observe(n);
+      else { n.classList.add('in'); n.querySelectorAll('[data-count]').forEach(countUp); }
+    });
+  }
+
+  // a fast jump can skip elements without them ever intersecting: show anything above the fold
+  let scrollQueued = false;
+  window.addEventListener('scroll', () => {
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(() => {
+      scrollQueued = false;
+      document.querySelectorAll('#results .reveal:not(.in)').forEach(n => {
+        if (n.getBoundingClientRect().top < innerHeight) {
+          n.classList.add('in');
+          n.querySelectorAll('[data-count]').forEach(countUp);
+          if (io) io.unobserve(n);
+        }
+      });
+    });
+  }, { passive: true });
+
+  // re-run the entrance when the content changes (year switch)
+  function resetReveals() {
+    document.querySelectorAll('#results .reveal.in').forEach(n => n.classList.remove('in'));
+  }
+
+  // cards lean towards the pointer
+  function addTilt(card) {
+    if (reducedMotion || !window.matchMedia('(hover: hover)').matches) return;
+    card.addEventListener('pointermove', e => {
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      card.style.setProperty('--ry', `${x * 10}deg`);
+      card.style.setProperty('--rx', `${-y * 10}deg`);
+    });
+    card.addEventListener('pointerleave', () => {
+      card.style.setProperty('--ry', '0deg');
+      card.style.setProperty('--rx', '0deg');
+    });
+  }
+
   const hours = min => Math.round(min / 60).toLocaleString('es-ES');
   const fmtDuration = min => (min >= 60 ? `${Math.floor(min / 60)} h ${Math.round(min % 60)} min` : `${Math.round(min)} min`);
   const fmtDate = d => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
@@ -104,6 +191,7 @@
   }
 
   function renderStats(s) {
+    resetReveals();
     renderHero(s);
     renderTiles(s);
     renderLibrary(s);
@@ -112,6 +200,7 @@
     renderHeatmap(s);
     renderFacts(s);
     renderShareCard(s);
+    requestAnimationFrame(observeReveals);
   }
 
   function renderHero(s) {
@@ -124,15 +213,15 @@
     hero.replaceChildren(
       bg,
       el('div', { class: 'hero-in' }, [
-        cover(g),
+        reveal(el('div', { class: 'hero-art' }, cover(g)), 0),
         el('div', {}, [
-          el('div', { class: 'hero-label', text: `Tu juego de ${s.year}` }),
-          el('h2', { text: g.game }),
-          el('div', { class: 'hero-stats' }, [
-            el('div', {}, [el('b', { text: `${hours(g.minutes)} h` }), el('span', { text: 'jugadas' })]),
-            el('div', {}, [el('b', { text: g.sessions }), el('span', { text: 'partidas' })]),
-            el('div', {}, [el('b', { text: `${Math.round((g.minutes / Math.max(1, s.totalMinutes)) * 100)}%` }), el('span', { text: 'de tu tiempo' })]),
-          ]),
+          reveal(el('div', { class: 'hero-label', text: `Tu juego de ${s.year}` }), 120),
+          reveal(el('h2', { text: g.game }), 200),
+          reveal(el('div', { class: 'hero-stats' }, [
+            el('div', {}, [counter(Math.round(g.minutes / 60), ' h'), el('span', { text: 'jugadas' })]),
+            el('div', {}, [counter(g.sessions), el('span', { text: 'partidas' })]),
+            el('div', {}, [counter(Math.round((g.minutes / Math.max(1, s.totalMinutes)) * 100), '%'), el('span', { text: 'de tu tiempo' })]),
+          ]), 300),
         ]),
       ])
     );
@@ -140,13 +229,13 @@
 
   function renderTiles(s) {
     const items = [
-      [`${hours(s.totalMinutes)} h`, 'en total'],
-      [s.gameCount, 'juegos'],
-      [s.daysPlayed, 'días jugando'],
-      [s.sessionCount, 'partidas'],
+      [Math.round(s.totalMinutes / 60), ' h', 'en total'],
+      [s.gameCount, '', 'juegos'],
+      [s.daysPlayed, '', 'días jugando'],
+      [s.sessionCount, '', 'partidas'],
     ];
-    $('#big-numbers').replaceChildren(...items.map(([v, l]) =>
-      el('div', { class: 'tile' }, [el('b', { text: v }), el('span', { text: l })])
+    $('#big-numbers').replaceChildren(...items.map(([v, suffix, l], i) =>
+      reveal(el('div', { class: 'tile' }, [counter(v, suffix), el('span', { text: l })]), 80 * i)
     ));
   }
 
@@ -154,15 +243,16 @@
     const top = s.games.slice(0, 10);
     const max = top.length ? top[0].minutes : 1;
     $('#top').replaceChildren(...top.map((g, i) =>
-      el('div', { class: 'game', title: g.game }, [
+      reveal(el('div', { class: 'game', title: g.game }, [
         el('div', { class: 'art' }, [cover(g), el('span', { class: 'rank', text: i + 1 })]),
         el('div', { class: 'meta' }, [
           el('div', { class: 'name', text: g.game }),
           el('div', { class: 'hours' }, [`${hours(g.minutes)} h`, el('small', { text: `${g.sessions} partidas` })]),
           el('div', { class: 'bar' }, el('i', { style: `width:${(g.minutes / max) * 100}%` })),
         ]),
-      ])
+      ]), 70 * i)
     ));
+    document.querySelectorAll('#top .game').forEach(addTilt);
   }
 
   function renderCols(box, values, labels, title) {
@@ -170,7 +260,7 @@
     const peak = values.indexOf(Math.max(...values));
     box.replaceChildren(...values.map((v, i) =>
       el('div', { class: 'col' + (i === peak && v > 0 ? ' top' : ''), title: title(i) }, [
-        el('i', { style: `height:${(v / max) * 100}%` }),
+        el('i', { style: `height:${(v / max) * 100}%;--d:${i * (values.length > 12 ? 25 : 50)}ms` }),
         el('small', { text: labels[i] }),
       ])
     ));
@@ -190,7 +280,7 @@
       const min = s.byDay.get(Stats.dayKey(d)) || 0;
       const level = min === 0 ? 0 : Math.min(4, Math.ceil((min / max) * 4));
       const label = `${fmtDate(d)}: ${min ? fmtDuration(min) : 'sin jugar'}`;
-      cells.push(el('i', { class: 'l' + level, title: label, style: `grid-row:${(i % 7) + 2};grid-column:${col}` }));
+      cells.push(el('i', { class: 'l' + level, title: label, style: `grid-row:${(i % 7) + 2};grid-column:${col};--c:${col + (i % 7)}` }));
     }
     $('#heatmap').replaceChildren(...cells);
   }
@@ -198,14 +288,14 @@
   function renderFacts(s) {
     const items = [];
     const add = (visual, label, value, note) =>
-      items.push(el('div', { class: 'fact' }, [
+      items.push(reveal(el('div', { class: 'fact' }, [
         visual,
         el('div', {}, [
           el('div', { class: 'label', text: label }),
           el('div', { class: 'value', text: value }),
           note ? el('div', { class: 'note', text: note }) : null,
         ]),
-      ]));
+      ]), 70 * items.length));
     const thumb = g => el('div', { class: 'thumb' }, cover(g));
     const badge = t => el('div', { class: 'badge', text: t });
 
@@ -239,7 +329,14 @@
   async function downloadCard() {
     if (!window.html2canvas) return showError('No se pudo cargar html2canvas (¿sin conexión?).');
     await document.fonts.ready;
-    const canvas = await html2canvas($('#share-card'), { scale: 3, backgroundColor: null });
+    const card = $('#share-card');
+    card.classList.add('capturing');
+    let canvas;
+    try {
+      canvas = await html2canvas(card, { scale: 3, backgroundColor: null });
+    } finally {
+      card.classList.remove('capturing');
+    }
     el('a', { href: canvas.toDataURL('image/png'), download: `3ds-wrapped-${$('#year').value}.png` }).click();
   }
 
