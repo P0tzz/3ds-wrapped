@@ -247,10 +247,11 @@ static void put_tid(Writer *w, u64 tid) {
 
 #define MAX_NAME_BYTES 24
 
+// retail and eShop titles use small unique ids (< 0x10000); homebrew and VC use big ones
 bool pld_needs_name(u64 tid) {
     u32 hi = tid >> 32;
     u32 unique = ((u32)tid >> 8) & 0xFFFFF;
-    return hi != 0x00040000 || unique >= 0xF0000;
+    return hi != 0x00040000 || unique >= 0x10000;
 }
 
 static void put_name(Writer *w, u64 tid, NameFn names) {

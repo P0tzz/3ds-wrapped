@@ -9,6 +9,13 @@
 #define IDB_TITLE_SIZE   0x200   // short (0x80) + long (0x100) + publisher (0x80), UTF-16
 #define SHORT_NAME_CHARS 0x40
 
+// DS titles keep the DS banner layout in the same slot: names at 0x240, 0x100 bytes per language
+#define TWL_TITLES_OFF   0x240
+#define TWL_TITLE_SIZE   0x100
+#define TWL_TITLE_CHARS  0x80
+
+static bool is_twl(u64 tid) { return (tid >> 32) == 0x00048004; }
+
 static FS_Archive arch;
 static Handle idb;
 static bool ready;
@@ -62,28 +69,76 @@ void names_exit(void) {
     ready = false;
 }
 
-static bool read_name(u32 index, u8 l) {
-    u16 utf16[SHORT_NAME_CHARS + 1] = {0};
-    u32 read = 0;
-    u64 off = (u64)index * IDB_ENTRY_SIZE + IDB_TITLES_OFF + l * IDB_TITLE_SIZE;
-    if (R_FAILED(FSFILE_Read(idb, &read, off, utf16, SHORT_NAME_CHARS * 2)) || !utf16[0]) return false;
-
+static bool utf16_name(const u16 *utf16) {
+    if (!utf16[0]) return false;
     ssize_t len = utf16_to_utf8((u8 *)name, utf16, sizeof(name) - 1);
     if (len <= 0) return false;
     name[len] = '\0';
     // names sometimes have a line break between title and subtitle
     for (char *c = name; *c; c++) if (*c == '\n') *c = ' ';
-    return true;
+    return name[0] != '\0';
+}
+
+static bool read_name(u32 index, u8 l) {
+    u16 utf16[SHORT_NAME_CHARS + 1] = {0};
+    u32 read = 0;
+    u64 off = (u64)index * IDB_ENTRY_SIZE + IDB_TITLES_OFF + l * IDB_TITLE_SIZE;
+    if (R_FAILED(FSFILE_Read(idb, &read, off, utf16, SHORT_NAME_CHARS * 2))) return false;
+    return utf16_name(utf16);
+}
+
+// DS banner title: "Title\nSubtitle\nPublisher" -> "Title Subtitle"
+static bool read_twl_name(u32 index, u8 l) {
+    u16 utf16[TWL_TITLE_CHARS + 1] = {0};
+    u32 read = 0;
+    u64 off = (u64)index * IDB_ENTRY_SIZE + TWL_TITLES_OFF + l * TWL_TITLE_SIZE;
+    if (R_FAILED(FSFILE_Read(idb, &read, off, utf16, TWL_TITLE_CHARS * 2)) || !utf16[0]) return false;
+    int lastBreak = -1;
+    for (int i = 0; i < TWL_TITLE_CHARS && utf16[i]; i++) if (utf16[i] == '\n') lastBreak = i;
+    if (lastBreak > 0) utf16[lastBreak] = 0;  // drop the publisher line
+    return utf16_name(utf16);
+}
+
+// SMDH of an installed title (homebrew that never made it into the cache)
+static bool installed_name(u64 tid, u8 l) {
+    static u8 smdh[0x36C0];
+    const FS_MediaType media[] = {MEDIATYPE_SD, MEDIATYPE_NAND};
+    for (int m = 0; m < 2; m++) {
+        u32 archPath[4] = {(u32)tid, (u32)(tid >> 32), media[m], 0};
+        u32 filePath[5] = {0, 0, 2, 0x6E6F6369 /* "icon" */, 0};
+        Handle h;
+        if (R_FAILED(FSUSER_OpenFileDirectly(&h, ARCHIVE_SAVEDATA_AND_CONTENT,
+                                             (FS_Path){PATH_BINARY, sizeof(archPath), archPath},
+                                             (FS_Path){PATH_BINARY, sizeof(filePath), filePath}, FS_OPEN_READ, 0)))
+            continue;
+        u32 read = 0;
+        Result res = FSFILE_Read(h, &read, 0, smdh, sizeof(smdh));
+        FSFILE_Close(h);
+        if (R_FAILED(res) || read < 0x8 + 16 * 0x200 || memcmp(smdh, "SMDH", 4)) continue;
+        u16 utf16[SHORT_NAME_CHARS + 1] = {0};
+        for (int k = 0; k < 2; k++) {
+            u8 lang_ = k == 0 ? l : 1;
+            memcpy(utf16, smdh + 0x8 + lang_ * 0x200, SHORT_NAME_CHARS * 2);
+            if (utf16_name(utf16)) return true;
+        }
+    }
+    return false;
 }
 
 const char *names_get(u64 tid) {
-    if (!ready) return NULL;
-    for (u32 i = 0; i < IDB_COUNT; i++) {
-        if (tids[i] != tid) continue;
-        if (read_name(i, lang) || read_name(i, 1)) return name;  // system language, then English
-        for (u8 l = 0; l < 16; l++) if (read_name(i, l)) return name;
-        return NULL;
+    if (ready) {
+        for (u32 i = 0; i < IDB_COUNT; i++) {
+            if (tids[i] != tid) continue;
+            if (is_twl(tid)) {
+                u8 l = lang < 8 ? lang : 1;
+                if (read_twl_name(i, l) || read_twl_name(i, 1) || read_twl_name(i, 0)) return name;
+                continue;  // there can be more than one slot for the same title
+            }
+            if (read_name(i, lang) || read_name(i, 1)) return name;  // system language, then English
+            for (u8 l = 0; l < 16; l++) if (read_name(i, l)) return name;
+        }
     }
+    if (!is_twl(tid) && installed_name(tid, lang < 16 ? lang : 1)) return name;
     return NULL;
 }
 
@@ -97,8 +152,20 @@ void names_dump(FILE *f) {
         if (!tids[i] || tids[i] == ~0ULL) continue;
         u64 unk;
         memcpy(&unk, raw + i * 16, 8);
-        bool ok = read_name(i, lang) || read_name(i, 1);
+        bool ok = is_twl(tids[i]) ? (read_twl_name(i, lang < 8 ? lang : 1) || read_twl_name(i, 1))
+                                  : (read_name(i, lang) || read_name(i, 1));
         fprintf(f, "%3lu  %016llX  %016llX  %s\n", i, tids[i], unk, ok ? name : "(sin nombre)");
+        if (is_twl(tids[i])) {
+            // raw bytes of the slot, to check the layout if the name is still missing
+            u8 b[16];
+            u32 read = 0;
+            for (u32 off = 0x220; off <= 0x260; off += 0x20) {
+                FSFILE_Read(idb, &read, (u64)i * IDB_ENTRY_SIZE + off, b, sizeof(b));
+                fprintf(f, "       +%03lX:", off);
+                for (int k = 0; k < 16; k++) fprintf(f, " %02X", b[k]);
+                fprintf(f, "\n");
+            }
+        }
         count++;
     }
     fprintf(f, "entradas: %d\n", count);
