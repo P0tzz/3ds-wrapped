@@ -2,6 +2,13 @@
 *.dat
 mis-datos*
 
+# homebrew
+homebrew/build/
+*.3dsx
+*.smdh
+*.elf
+*.map
+
 # Sistema
 .DS_Store
 Thumbs.db
