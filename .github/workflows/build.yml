@@ -20,3 +20,18 @@ jobs:
         with:
           name: 3ds-wrapped
           path: homebrew/3ds-wrapped.3dsx
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build host tool
+        working-directory: homebrew
+        run: gcc -Wall -Werror -O2 -Isource source/pld.c tests/pld_url.c -o pld_url
+      - name: Run on fixture
+        working-directory: homebrew
+        run: ./pld_url tests/fixture-pld.bin | tee links.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: links
+          path: homebrew/links.txt
