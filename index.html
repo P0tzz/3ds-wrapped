@@ -4,90 +4,81 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>3DS Wrapped</title>
-  <meta name="description" content="Tu año en la 3DS, resumido: juegos más jugados, horas, rachas y una tarjeta para compartir.">
+  <meta name="description" content="Tu año en la 3DS en números: juegos más jugados, horas, rachas y una tarjeta para compartir.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header class="hero">
-    <div class="console" aria-hidden="true">
-      <div class="screen top"><span>★</span></div>
-      <div class="hinge"></div>
-      <div class="screen bottom"></div>
-    </div>
-    <h1>3DS <span>Wrapped</span></h1>
-    <p class="tagline">Tu año en la consola de doble pantalla, resumido.</p>
+  <header class="masthead wrap">
+    <p class="kicker">3DS Wrapped</p>
+    <h1>Tu año en la consola, en números.</h1>
+    <p class="lede">Escanea el QR de la <a href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew">app para 3DS</a> o carga el <code>pld.dat</code> del Registro de actividad.</p>
   </header>
 
-  <main>
-    <!-- Carga de datos -->
-    <section id="upload" class="card">
-      <h2>Carga tus datos</h2>
-      <label id="dropzone" class="dropzone">
+  <main class="wrap">
+    <section id="upload">
+      <label id="dropzone" class="drop">
         <input type="file" id="file" accept=".json,.csv,.dat" hidden>
-        <strong>Arrastra tu archivo aquí</strong>
-        <span>o haz clic para elegirlo</span>
-        <small><code>pld.dat</code> del Registro de actividad, JSON o CSV</small>
+        <span class="drop-title">Suelta el archivo aquí o <u>elígelo</u></span>
+        <span class="drop-hint">pld.dat · .json · .csv</span>
       </label>
-      <div class="or"><span>o</span></div>
-      <button id="demo" class="btn">Probar con datos de ejemplo</button>
+      <p class="actions"><button id="demo" class="link">Ver un ejemplo</button></p>
       <p id="status" class="status" role="status" hidden></p>
       <p id="error" class="error" role="alert" hidden></p>
-      <p class="privacy">🔒 Todo se procesa en tu navegador. Tus datos no se suben a ningún sitio.</p>
+      <p class="fine">Todo se procesa en tu navegador. No se sube nada.</p>
     </section>
 
-    <!-- Resultados -->
     <section id="results" hidden>
       <div class="toolbar">
-        <label>Año
-          <select id="year"></select>
-        </label>
-        <button id="reset" class="btn ghost">Cargar otro archivo</button>
+        <label class="year">Año <select id="year"></select></label>
+        <button id="reset" class="link">Cargar otro archivo</button>
       </div>
 
-      <div id="big-numbers" class="stats-grid"></div>
+      <dl id="big-numbers" class="totals"></dl>
 
-      <div class="card">
-        <h2>Tus juegos más jugados</h2>
-        <div class="chart-box tall"><canvas id="chart-top"></canvas></div>
-      </div>
+      <section class="block">
+        <h2><span>01</span>Más jugados</h2>
+        <ol id="top" class="ranking"></ol>
+      </section>
 
-      <div class="two-col">
-        <div class="card">
-          <h2>Horas por mes</h2>
-          <div class="chart-box"><canvas id="chart-month"></canvas></div>
+      <section class="block split">
+        <div>
+          <h2><span>02</span>Por mes</h2>
+          <div id="months" class="cols"></div>
         </div>
-        <div class="card">
-          <h2>¿A qué hora juegas?</h2>
-          <div class="chart-box"><canvas id="chart-hour"></canvas></div>
+        <div>
+          <h2><span>03</span>Por hora</h2>
+          <div id="hours" class="cols cols-24"></div>
         </div>
-      </div>
+      </section>
 
-      <div class="card">
-        <h2>Tu año, día a día</h2>
+      <section class="block">
+        <h2><span>04</span>Día a día</h2>
         <div class="heatmap-scroll"><div id="heatmap" class="heatmap"></div></div>
-        <div class="legend">
-          Menos <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> Más
+        <div class="legend">menos <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> más</div>
+      </section>
+
+      <section class="block">
+        <h2><span>05</span>Destacados</h2>
+        <dl id="highlights" class="facts"></dl>
+      </section>
+
+      <section class="block">
+        <h2><span>06</span>Compartir</h2>
+        <div class="share">
+          <div id="share-card" class="ticket"></div>
+          <button id="download" class="btn">Descargar PNG</button>
         </div>
-      </div>
-
-      <div class="card">
-        <h2>Momentos destacados</h2>
-        <div id="highlights" class="highlights"></div>
-      </div>
-
-      <div class="card share">
-        <h2>Tu tarjeta para compartir</h2>
-        <div id="share-card" class="share-card"></div>
-        <button id="download" class="btn">Descargar imagen</button>
-      </div>
+      </section>
     </section>
   </main>
 
-  <footer>
-    Proyecto de fans sin relación con Nintendo. «Nintendo 3DS» es una marca registrada de Nintendo.
+  <footer class="wrap">
+    <a href="https://github.com/P0tzz/3ds-wrapped">Código en GitHub</a> · MIT · No afiliado a Nintendo.
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="js/sample-data.js"></script>
   <script src="js/titledb.js"></script>

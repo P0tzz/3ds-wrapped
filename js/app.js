@@ -1,10 +1,10 @@
 (function () {
   const $ = sel => document.querySelector(sel);
-  const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const MONTHS = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+  const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
   let sessions = [];
-  const charts = {};
 
   const hours = min => Math.round(min / 60).toLocaleString('es-ES');
   const fmtDuration = min => (min >= 60 ? `${Math.floor(min / 60)} h ${Math.round(min % 60)} min` : `${Math.round(min)} min`);
@@ -14,14 +14,11 @@
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
       if (k === 'text') node.textContent = v;
+      else if (k === 'style') node.style.cssText = v;
       else node.setAttribute(k, v);
     }
-    for (const c of [].concat(children)) node.append(c);
+    for (const c of [].concat(children)) if (c != null) node.append(c);
     return node;
-  }
-
-  function cssVar(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
 
   function showError(msg) {
@@ -76,133 +73,125 @@
   }
 
   function renderStats(s) {
-    renderNumbers(s);
-    renderCharts(s);
+    renderTotals(s);
+    renderTop(s);
+    renderCols($('#months'), s.byMonth, MONTHS, i => `${MONTHS_LONG[i]}: ${hours(s.byMonth[i])} h`);
+    renderCols($('#hours'), s.byHour, s.byHour.map((_, h) => (h % 6 === 0 ? String(h) : '')), h => `${h}:00`);
     renderHeatmap(s);
-    renderHighlights(s);
-    renderShareCard(s);
+    renderFacts(s);
+    renderTicket(s);
   }
 
-  function renderNumbers(s) {
+  function renderTotals(s) {
     const items = [
-      [hours(s.totalMinutes), 'horas jugadas'],
-      [s.gameCount, 'juegos distintos'],
-      [s.daysPlayed, 'días con la consola'],
-      [s.sessionCount, 'partidas'],
+      ['Horas', hours(s.totalMinutes)],
+      ['Juegos', s.gameCount],
+      ['Días', s.daysPlayed, ` /${new Date(s.year, 1, 29).getMonth() === 1 ? 366 : 365}`],
+      ['Partidas', s.sessionCount],
     ];
-    $('#big-numbers').replaceChildren(...items.map(([v, l]) =>
-      el('div', { class: 'stat' }, [el('div', { class: 'value', text: v }), el('div', { class: 'label', text: l })])
+    $('#big-numbers').replaceChildren(...items.map(([label, value, extra]) =>
+      el('div', {}, [el('dt', { text: label }), el('dd', {}, [String(value), extra ? el('small', { text: extra }) : null])])
     ));
   }
 
-  function renderCharts(s) {
-    if (!window.Chart) {
-      document.querySelectorAll('.chart-box').forEach(b => { b.textContent = 'No se pudo cargar Chart.js (¿sin conexión?).'; });
-      return;
-    }
-    Chart.defaults.color = cssVar('--muted');
-    Chart.defaults.borderColor = cssVar('--line');
-    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-
-    const common = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-    };
-    const toHours = arr => arr.map(m => +(m / 60).toFixed(1));
-
+  function renderTop(s) {
     const top = s.games.slice(0, 10);
-    make('top', {
-      type: 'bar',
-      data: {
-        labels: top.map(g => g.game),
-        datasets: [{ data: toHours(top.map(g => g.minutes)), backgroundColor: cssVar('--accent'), borderRadius: 6 }],
-      },
-      options: {
-        ...common,
-        indexAxis: 'y',
-        scales: { x: { title: { display: true, text: 'horas' } }, y: { grid: { display: false } } },
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.x} h` } } },
-      },
-    });
-
-    make('month', {
-      type: 'bar',
-      data: { labels: MONTHS, datasets: [{ data: toHours(s.byMonth), backgroundColor: cssVar('--accent-2'), borderRadius: 6 }] },
-      options: { ...common, scales: { x: { grid: { display: false } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y} h` } } } },
-    });
-
-    make('hour', {
-      type: 'line',
-      data: {
-        labels: s.byHour.map((_, h) => `${h}h`),
-        datasets: [{ data: toHours(s.byHour), borderColor: cssVar('--accent-3'), backgroundColor: 'rgba(255,200,61,.15)', fill: true, tension: 0.35, pointRadius: 0 }],
-      },
-      options: { ...common, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y} h` } } } },
-    });
+    const max = top.length ? top[0].minutes : 1;
+    $('#top').replaceChildren(...top.map((g, i) =>
+      el('li', {}, [
+        el('span', { class: 'rank', text: String(i + 1).padStart(2, '0') }),
+        el('span', { class: 'name', text: g.game, title: g.game }),
+        el('span', { class: 'val', text: `${hours(g.minutes)} h` }),
+        el('span', { class: 'bar' }, el('i', { style: `width:${(g.minutes / max) * 100}%` })),
+      ])
+    ));
   }
 
-  function make(id, config) {
-    if (charts[id]) charts[id].destroy();
-    charts[id] = new Chart($('#chart-' + id), config);
+  function renderCols(box, values, labels, title) {
+    const max = Math.max(1, ...values);
+    const peak = values.indexOf(Math.max(...values));
+    box.replaceChildren(...values.map((v, i) =>
+      el('div', { class: 'col' + (i === peak && v > 0 ? ' top' : ''), title: title(i) }, [
+        el('i', { style: `height:${(v / max) * 100}%` }),
+        el('small', { text: labels[i] }),
+      ])
+    ));
   }
 
   function renderHeatmap(s) {
     const cells = [];
     const jan1 = new Date(s.year, 0, 1);
     const offset = (jan1.getDay() + 6) % 7; // monday first
-    for (let i = 0; i < offset; i++) cells.push(el('i', { class: 'empty' }));
-
     const max = Math.max(1, ...s.byDay.values());
-    for (let d = new Date(jan1); d.getFullYear() === s.year; d.setDate(d.getDate() + 1)) {
+
+    for (let d = new Date(jan1), i = offset; d.getFullYear() === s.year; d.setDate(d.getDate() + 1), i++) {
+      const col = Math.floor(i / 7) + 1;
+      if (d.getDate() === 1) {
+        cells.push(el('span', { class: 'm', text: MONTHS_SHORT[d.getMonth()], style: `grid-row:1;grid-column:${col} / span 3` }));
+      }
       const min = s.byDay.get(Stats.dayKey(d)) || 0;
       const level = min === 0 ? 0 : Math.min(4, Math.ceil((min / max) * 4));
       const label = `${fmtDate(d)}: ${min ? fmtDuration(min) : 'sin jugar'}`;
-      cells.push(el('i', { class: 'l' + level, title: label, 'aria-label': label }));
+      cells.push(el('i', { class: 'l' + level, title: label, style: `grid-row:${(i % 7) + 2};grid-column:${col}` }));
     }
     $('#heatmap').replaceChildren(...cells);
   }
 
-  function renderHighlights(s) {
+  function renderFacts(s) {
     const items = [];
-    const add = (emoji, title, text, sub) =>
-      items.push(el('div', { class: 'hl' }, [
-        el('div', { class: 'emoji', text: emoji }),
-        el('div', { class: 'title', text: title }),
-        el('div', { class: 'text', text: text }),
-        el('div', { class: 'sub', text: sub }),
-      ]));
+    const add = (label, value, note) =>
+      items.push(el('div', {}, [el('dt', { text: label }), el('dd', {}, [value, note ? el('small', { text: note }) : null])]));
 
-    const p = s.personality;
-    add(p.emoji, 'Tu personalidad gamer', p.name, p.desc);
-    if (s.games[0]) add('👑', 'Tu juego del año', s.games[0].game, `${hours(s.games[0].minutes)} horas en ${s.games[0].sessions} partidas`);
-    if (s.streak.length) add('🔥', 'Racha más larga', `${s.streak.length} días seguidos`, `del ${fmtDate(s.streak.from)} al ${fmtDate(s.streak.to)}`);
-    if (s.longestSession) add('⏱️', 'Partida más larga', fmtDuration(s.longestSession.minutes), `${s.longestSession.game}, el ${fmtDate(s.longestSession.start)}`);
-    if (s.bestDay) add('📅', 'Tu día más intenso', fmtDate(s.bestDay.date), `${fmtDuration(s.bestDay.minutes)} de juego`);
-    add('🗓️', 'Mes favorito', MONTHS_LONG[s.bestMonth], `${hours(s.byMonth[s.bestMonth])} horas`);
-    if (s.firstSession) add('🎬', 'Primer juego del año', s.firstSession.game, `el ${fmtDate(s.firstSession.start)}`);
-    if (s.forgotten && s.games.length > 1) add('🕸️', 'El olvidado', s.forgotten.game, `no lo abres desde el ${fmtDate(s.forgotten.last)}`);
+    if (s.games[0]) add('Juego del año', s.games[0].game, `${hours(s.games[0].minutes)} h en ${s.games[0].sessions} partidas`);
+    add('Perfil', s.personality.name, s.personality.desc);
+    if (s.streak.length) add('Racha más larga', `${s.streak.length} días seguidos`, `del ${fmtDate(s.streak.from)} al ${fmtDate(s.streak.to)}`);
+    if (s.longestSession) add('Partida más larga', fmtDuration(s.longestSession.minutes), `${s.longestSession.game}, ${fmtDate(s.longestSession.start)}`);
+    if (s.bestDay) add('Día con más juego', fmtDate(s.bestDay.date), fmtDuration(s.bestDay.minutes));
+    add('Mes con más juego', MONTHS_LONG[s.bestMonth], `${hours(s.byMonth[s.bestMonth])} h`);
+    if (s.firstSession) add('Primer juego del año', s.firstSession.game, fmtDate(s.firstSession.start));
+    if (s.forgotten && s.games.length > 1) add('El olvidado', s.forgotten.game, `sin abrir desde el ${fmtDate(s.forgotten.last)}`);
 
     $('#highlights').replaceChildren(...items);
   }
 
-  function renderShareCard(s) {
-    const top = s.games.slice(0, 5).map(g => el('li', {}, [g.game + ' ', el('span', { text: `· ${hours(g.minutes)} h` })]));
+  function weeklyTotals(s) {
+    const weeks = new Array(53).fill(0);
+    for (const [key, min] of s.byDay) {
+      const d = new Date(key + 'T12:00:00');
+      const doy = Math.floor((d - new Date(s.year, 0, 1)) / 864e5);
+      weeks[Math.min(52, Math.floor(doy / 7))] += min;
+    }
+    return weeks;
+  }
+
+  function renderTicket(s) {
+    const row = (a, b) => el('div', { class: 'row' }, [el('span', { text: a }), el('span', { text: b })]);
+    const weeks = weeklyTotals(s);
+    const wmax = Math.max(1, ...weeks);
+
     $('#share-card').replaceChildren(
-      el('div', { class: 'sc-year', text: `Mi año ${s.year} en la 3DS` }),
-      el('div', { class: 'sc-hours', text: `${hours(s.totalMinutes)} h` }),
-      el('div', { class: 'sc-sub', text: `${s.gameCount} juegos · ${s.daysPlayed} días · racha de ${s.streak.length}` }),
-      el('ol', {}, top),
-      el('div', { class: 'sc-badge', text: `${s.personality.emoji} ${s.personality.name}` }),
-      el('div', { class: 'sc-foot', text: '3DS Wrapped' })
+      row('3DS WRAPPED', String(s.year)),
+      el('div', { class: 'big' }, [hours(s.totalMinutes), el('small', { text: ' h' })]),
+      el('div', { text: 'jugadas este año' }),
+      el('hr'),
+      ...s.games.slice(0, 5).map((g, i) => row(`${String(i + 1).padStart(2, '0')} ${g.game}`, `${hours(g.minutes)} h`)),
+      el('hr'),
+      row('Juegos', String(s.gameCount)),
+      row('Días jugados', String(s.daysPlayed)),
+      row('Racha', `${s.streak.length} días`),
+      row('Perfil', s.personality.name),
+      el('hr'),
+      el('div', { class: 'strip' }, weeks.map(w => el('i', { style: `height:${(w / wmax) * 100}%` }))),
+      el('div', { class: 'foot', text: 'p0tzz.github.io/3ds-wrapped' })
     );
+    $('#share-card').firstChild.classList.add('head');
   }
 
   async function downloadCard() {
     if (!window.html2canvas) return showError('No se pudo cargar html2canvas (¿sin conexión?).');
-    const canvas = await html2canvas($('#share-card'), { scale: 3, backgroundColor: null });
-    const a = el('a', { href: canvas.toDataURL('image/png'), download: `3ds-wrapped-${$('#year').value}.png` });
-    a.click();
+    await document.fonts.ready;
+    const canvas = await html2canvas($('#share-card'), { scale: 3, backgroundColor: '#fbfaf6' });
+    el('a', { href: canvas.toDataURL('image/png'), download: `3ds-wrapped-${$('#year').value}.png` }).click();
   }
 
   $('#file').addEventListener('change', e => e.target.files[0] && loadFile(e.target.files[0]));
@@ -216,11 +205,11 @@
     if (location.hash) history.replaceState(null, '', location.pathname);
   });
 
-  const code = QRData.fromHash(location.hash);
-  if (code) startFromQR(code);
-
   const dz = $('#dropzone');
   ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
   dz.addEventListener('drop', e => e.dataTransfer.files[0] && loadFile(e.dataTransfer.files[0]));
+
+  const code = QRData.fromHash(location.hash);
+  if (code) startFromQR(code);
 })();
