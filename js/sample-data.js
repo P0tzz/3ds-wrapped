@@ -1,4 +1,4 @@
-// fake data for the demo button (made-up game names)
+// fake play history for the demo button
 (function (W) {
   // mulberry32
   function rng(seed) {
@@ -10,17 +10,18 @@
     };
   }
 
+  // code = product code, used for the cover art
   const GAMES = [
-    { name: 'Dragones de Bolsillo', weight: 10 },
-    { name: 'Kart Galáctico', weight: 8 },
-    { name: 'Granja Feliz 3D', weight: 7 },
-    { name: 'Aventura Pixel', weight: 6 },
-    { name: 'Puzle Cúbico', weight: 4 },
-    { name: 'Ritmo Estelar', weight: 3 },
-    { name: 'Detective Nocturno', weight: 3 },
-    { name: 'Isla de Pesca', weight: 2 },
-    { name: 'Cazadores de Bestias', weight: 5 },
-    { name: 'Laberinto Retro', weight: 1 },
+    { name: 'Pokémon X', code: 'EKJA', weight: 10 },
+    { name: 'Mario Kart 7', code: 'AMKE', weight: 8 },
+    { name: 'Animal Crossing: New Leaf', code: 'EGDE', weight: 7 },
+    { name: 'The Legend of Zelda: A Link Between Worlds', code: 'BZLE', weight: 6 },
+    { name: 'Super Smash Bros. for Nintendo 3DS', code: 'AXCE', weight: 5 },
+    { name: 'The Legend of Zelda: Ocarina of Time 3D', code: 'AQEE', weight: 4 },
+    { name: 'Fire Emblem Awakening', code: 'AFEE', weight: 3 },
+    { name: "Luigi's Mansion: Dark Moon", code: 'AGGE', weight: 3 },
+    { name: "The Legend of Zelda: Majora's Mask 3D", code: 'AJRE', weight: 2 },
+    { name: 'Kid Icarus: Uprising', code: 'AKDE', weight: 1 },
   ];
 
   function pickGame(r, monthBias) {
@@ -28,9 +29,9 @@
     let x = r() * total;
     for (let i = 0; i < GAMES.length; i++) {
       x -= GAMES[i].weight + (i === monthBias ? 12 : 0);
-      if (x <= 0) return GAMES[i].name;
+      if (x <= 0) return GAMES[i];
     }
-    return GAMES[0].name;
+    return GAMES[0];
   }
 
   function generate() {
@@ -51,7 +52,8 @@
           const hour = r() < 0.12 ? Math.floor(r() * 3) : 15 + Math.floor(r() * 9);
           const when = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour % 24, Math.floor(r() * 60));
           const minutes = Math.round(10 + r() * r() * 150);
-          sessions.push({ game: pickGame(r, bias), start: when, minutes });
+          const g = pickGame(r, bias);
+          sessions.push({ game: g.name, code: g.code, start: when, minutes });
         }
       }
     }
