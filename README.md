@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/66d3002d-e8c5-42cc-9f0a-304a47794c64" width="820" alt="Resumen del año en la web: juego del año, horas, juegos, días y biblioteca">
+  <img src="https://github.com/user-attachments/assets/66d3002d-e8c5-42cc-9f0a-304a47794c64" width="100%" alt="Resumen del año en la web: juego del año, horas, juegos, días y biblioteca">
 </p>
 
 ## Cómo funciona
