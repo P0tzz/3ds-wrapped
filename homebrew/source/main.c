@@ -126,8 +126,13 @@ static void print_screen(const char *source, u16 *years, int nyears, int sel) {
         const TitleStat *t = &stats.titles[i];
         const char *n = names_get(t->tid);
         char ascii[26];
+        u32 lo = (u32)t->tid;
         if (n) names_ascii(n, ascii, sizeof(ascii));
-        else snprintf(ascii, sizeof(ascii), "%08lX", (unsigned long)(u32)t->tid);
+        else if ((t->tid >> 32) == 0x00048004 && lo)  // DS: low word is the game code in ASCII
+            snprintf(ascii, sizeof(ascii), "DS: %c%c%c%c", (char)(lo >> 24), (char)(lo >> 16), (char)(lo >> 8), (char)lo);
+        else if ((t->tid >> 32) == 0x00048004)
+            snprintf(ascii, sizeof(ascii), "DS (TWiLight/flashcart)");
+        else snprintf(ascii, sizeof(ascii), "%08lX", (unsigned long)lo);
         printf("  %d. %-25s\n     %lu h\n", i + 1, ascii, (unsigned long)(t->secs / 3600));
     }
     printf("\n");

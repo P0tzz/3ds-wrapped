@@ -17,7 +17,7 @@ APP_DESCRIPTION := Tu resumen anual de juego
 APP_AUTHOR      := P0tzz
 
 WRAPPED_URL     ?= https://p0tzz.github.io/3ds-wrapped/
-APP_VERSION     ?= 0.3.0
+APP_VERSION     ?= 0.3.1
 
 ARCH     := -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 CFLAGS   := -g -Wall -O2 -mword-relocations -ffunction-sections $(ARCH) $(INCLUDE) -D__3DS__ \
