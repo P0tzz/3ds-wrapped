@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "pld.h"
 #include "qrcodegen.h"
@@ -42,9 +43,20 @@ static void draw_qr(void) {
     }
 }
 
+// also leave the link on the SD card, for phones that can't scan the screen
+static void save_link(void) {
+    mkdir("sdmc:/3ds", 0777);
+    mkdir("sdmc:/3ds/3ds-wrapped", 0777);
+    FILE *f = fopen("sdmc:/3ds/3ds-wrapped/enlace.txt", "w");
+    if (!f) return;
+    fprintf(f, "%s\n", url);
+    fclose(f);
+}
+
 static void build(const Chunk *chunks, int n, u16 year) {
     pld_year_stats(chunks, n, year, &stats);
     pld_url(&stats, WRAPPED_URL, url, sizeof(url));
+    save_link();
 
     qrScale = 0;
     if (qrcodegen_encodeText(url, qrTemp, qr, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN, qrcodegen_VERSION_MAX,
@@ -72,7 +84,9 @@ static void print_screen(const char *source, u16 *years, int nyears, int sel) {
 
     if (qrScale) {
         printf("  Escanea el QR de arriba con\n");
-        printf("  la c\xA0mara del m\xA2vil.\n");
+        printf("  la c\xA0mara del m\xA2vil.\n\n");
+        printf("  El enlace tambi\x82n est\xA0 en\n");
+        printf("  sd:/3ds/3ds-wrapped/enlace.txt\n");
     } else {
         printf("  \x1b[31mNo cabe el QR.\x1b[0m\n");
     }
