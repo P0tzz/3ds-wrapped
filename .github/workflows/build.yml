@@ -14,19 +14,42 @@ jobs:
     container: devkitpro/devkitarm:latest
     steps:
       - uses: actions/checkout@v4
+      - name: Build
+        run: make -C homebrew
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elf
+          path: |
+            homebrew/3ds-wrapped.3dsx
+            homebrew/3ds-wrapped.elf
+
+  # makerom needs a newer glibc than the devkitARM image, so the .cia is packed on the runner itself
+  cia:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: elf
+          path: homebrew
       - name: Install bannertool and makerom
         run: |
-          apt-get update -qq && apt-get install -y -qq --no-install-recommends unzip curl ca-certificates > /dev/null
           mkdir -p /tmp/tools && cd /tmp/tools
           curl -sSL -o bannertool.zip https://github.com/diasurgical/bannertool/releases/download/1.2.0/bannertool.zip
           curl -sSL -o makerom.zip https://github.com/3DSGuy/Project_CTR/releases/download/makerom-v0.19.0/makerom-v0.19.0-ubuntu_x86_64.zip
           unzip -q -o bannertool.zip -d bannertool && unzip -q -o makerom.zip -d makerom
-          install -m 755 "$(find bannertool -path '*linux-x86_64*' -name bannertool -type f | head -n1)" /usr/local/bin/bannertool
-          install -m 755 "$(find makerom -name makerom -type f | head -n1)" /usr/local/bin/makerom
-          bannertool 2>&1 | head -n 2 || true
-          makerom -version 2>&1 | head -n 2 || true
-      - name: Build
-        run: make -C homebrew cia
+          sudo install -m 755 "$(find bannertool -path '*linux-x86_64*' -name bannertool -type f | head -n1)" /usr/local/bin/bannertool
+          sudo install -m 755 "$(find makerom -name makerom -type f | head -n1)" /usr/local/bin/makerom
+      - name: Pack .cia
+        working-directory: homebrew
+        run: |
+          mkdir -p build
+          bannertool makebanner -i banner.png -a banner.wav -o build/banner.bnr
+          bannertool makesmdh -s "3DS Wrapped" -l "Tu resumen anual de juego" -p "P0tzz" -i icon.png -o build/icon.icn
+          makerom -f cia -o 3ds-wrapped.cia -elf 3ds-wrapped.elf -rsf app.rsf -target t -exefslogo \
+            -banner build/banner.bnr -icon build/icon.icn
+          ls -l 3ds-wrapped.cia
       - uses: actions/upload-artifact@v4
         with:
           name: 3ds-wrapped
