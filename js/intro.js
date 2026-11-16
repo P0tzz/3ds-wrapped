@@ -26,7 +26,9 @@
       [() => `Son las ${clockText()}…`, 'y siempre acababas volviendo a tu rincón.'], setupCozy, wait(1500)),
     T('platform', /mario|kirby|donkey kong|yoshi|wario|sonic|rayman|shovel knight|mega ?man|crash/i, ['#ffd23f', '#ff8a00', '#ffffff'], 'star',
       ['Salto…', 'tras salto, tras salto.'], setupPlatform, runPlatform),
-    T('dawn', /zelda|dragon quest|final fantasy|layton|metroid|castlevania|ocarina|link/i, ['#ffe08a', '#ffc94a', '#9be7ff'], 'twinkle',
+    T('legend', /ocarina/i, ['#ffd86b', '#fff3c4', '#7fd4ff'], 'twinkle',
+      ['Hace mucho tiempo, en tu consola…'], setupLegend, runLegend),
+    T('dawn', /zelda|dragon quest|final fantasy|layton|metroid|castlevania|link/i, ['#ffe08a', '#ffc94a', '#9be7ff'], 'twinkle',
       ['Toda gran aventura empieza de noche…', 'y la tuya duró hasta el amanecer.'], setupDawn, runDawn),
   ];
   const DEFAULT = T('default', null, ['#3ea6ff', '#00aaff', '#ffffff'], 'spark',
@@ -151,6 +153,90 @@
       await S.wait(160);
     }
     await S.wait(1200);
+  }
+
+  // legend: low-poly field at night, a day/night time-lapse, an instrument, a treasure chest.
+  // All shapes are generated here; the melody is random, not taken from any game.
+  function lowPolyField() {
+    const layers = [
+      { base: 0.5, amp: 0.2, shades: ['#22355e', '#1b2b4f', '#2a3f6b'] },
+      { base: 0.66, amp: 0.15, shades: ['#1c3b4a', '#163240', '#21455a'] },
+      { base: 0.82, amp: 0.1, shades: ['#173a26', '#11301e', '#1c4530'] },
+    ];
+    let polys = '';
+    for (const L of layers) {
+      const pts = [];
+      for (let x = 0; x < 1200; x += 55 + Math.random() * 70) pts.push([x, 300 * (L.base - Math.random() * L.amp)]);
+      pts.push([1200, 300 * (L.base - Math.random() * L.amp)]);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+        const mx = (x1 + x2) / 2 + Math.random() * 24 - 12, my = Math.max(y1, y2) + 25 + Math.random() * 45;
+        const c = k => L.shades[(i + k) % L.shades.length];
+        const f = n => n.toFixed(0);
+        polys += `<polygon points="${f(x1)},${f(y1)} ${f(x2)},${f(y2)} ${f(mx)},${f(my)}" fill="${c(0)}"/>`;
+        polys += `<polygon points="${f(x1)},${f(y1)} ${f(mx)},${f(my)} ${f(x1)},300 ${f(mx)},300" fill="${c(1)}"/>`;
+        polys += `<polygon points="${f(x2)},${f(y2)} ${f(mx)},${f(my)} ${f(mx)},300 ${f(x2)},300" fill="${c(2)}"/>`;
+      }
+    }
+    return polys;
+  }
+
+  function setupLegend(S) {
+    layer(S, 'lg-sky');
+    layer(S, 'lg-wheel', '<i class="sun"></i><i class="moon"></i>');
+    layer(S, 'lg-field', `<svg viewBox="0 0 1200 300" preserveAspectRatio="none">${lowPolyField()}</svg>`);
+    layer(S, 'lg-fog');
+  }
+
+  async function runLegend(S) {
+    // 1) a day passes over the field, counting the days actually played
+    const days = (S.stats && S.stats.daysPlayed) || 100;
+    const year = (S.stats && S.stats.year) || '';
+    const counter = layer(S, 'lg-count clear', `<b>0</b><span>amaneceres jugando${year ? ' en ' + year : ''}</span>`);
+    S.root.classList.add('lg-cycle');
+    S.fx.setRate(0.6);
+    await S.animate(2900, p => { counter.firstChild.textContent = Math.round(days * (1 - Math.pow(1 - p, 3))); });
+    counter.firstChild.textContent = days;
+    await S.wait(500);
+    counter.classList.add('away');
+
+    // 2) the instrument and six notes on a staff
+    S.root.classList.add('lg-song');
+    layer(S, 'lg-staff clear', '<i></i><i></i><i></i><i></i><i></i>');
+    layer(S, 'lg-ocarina clear',
+      '<svg viewBox="0 0 160 110"><defs><linearGradient id="lgClay" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#f6e7c8"/><stop offset=".6" stop-color="#d9b98a"/><stop offset="1" stop-color="#a87f4e"/></linearGradient></defs>' +
+      '<path d="M18 58C18 30 56 14 92 18c30 3 52 18 50 38-2 24-34 40-70 38C40 92 18 80 18 58Z" fill="url(#lgClay)" stroke="#e7b75a" stroke-width="3"/>' +
+      '<path d="M120 26l28-10 6 12-26 14Z" fill="url(#lgClay)" stroke="#e7b75a" stroke-width="3"/>' +
+      '<path d="M30 60c20 8 60 10 96-4" fill="none" stroke="#e7b75a" stroke-width="2" opacity=".7"/>' +
+      '<circle cx="58" cy="44" r="6" fill="#5a3c22"/><circle cx="80" cy="40" r="6" fill="#5a3c22"/>' +
+      '<circle cx="100" cy="44" r="5" fill="#5a3c22"/><circle cx="72" cy="66" r="5" fill="#5a3c22"/></svg>');
+    await S.wait(800);
+    const glyphs = ['♪', '♫', '♪', '♩', '♫', '♪'];
+    for (let i = 0; i < glyphs.length && !S.skipped(); i++) {
+      const n = layer(S, 'lg-note clear', glyphs[i]);
+      n.style.left = `${18 + i * 12.8}%`;
+      n.style.top = `${30 + Math.floor(Math.random() * 5) * 3.2}%`;
+      S.fx.burst(10);
+      await S.wait(330);
+    }
+    await S.wait(450);
+
+    // 3) a chest opens and the light pours out
+    S.root.classList.add('lg-treasure');
+    const chest = layer(S, 'lg-chest',
+      '<svg viewBox="0 0 200 150"><defs><linearGradient id="lgWood" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#8a5a2e"/><stop offset="1" stop-color="#5a3518"/></linearGradient></defs>' +
+      '<rect x="22" y="66" width="156" height="74" rx="6" fill="url(#lgWood)" stroke="#e7b75a" stroke-width="4"/>' +
+      '<rect x="22" y="94" width="156" height="8" fill="#e7b75a" opacity=".8"/>' +
+      '<rect x="90" y="84" width="20" height="26" rx="3" fill="#ffd86b"/><circle cx="100" cy="96" r="3.5" fill="#5a3518"/>' +
+      '<g class="lid"><path d="M22 66V54c0-22 34-36 78-36s78 14 78 36v12Z" fill="url(#lgWood)" stroke="#e7b75a" stroke-width="4"/>' +
+      '<path d="M60 26v40M140 26v40" stroke="#e7b75a" stroke-width="5" opacity=".8"/></g></svg>');
+    layer(S, 'lg-rays');
+    await S.wait(650);
+    chest.classList.add('open');
+    S.fx.setRate(2.5);
+    await S.wait(700);
   }
 
   // Luigi's Mansion: mist, a flashlight and lightning
@@ -419,7 +505,7 @@
     $('.fx-spot').classList.remove('on');
     $('.fx-scene').replaceChildren();
     $('.fx-cover').replaceChildren(helpers.cover(g));
-    $('.fx-kicker').textContent = `Tu juego de ${s.year}`;
+    $('.fx-kicker').textContent = theme.id === 'legend' ? `La leyenda de tu ${s.year}` : `Tu juego de ${s.year}`;
     // title word by word
     $('.fx-title').replaceChildren(...g.game.split(/\s+/).flatMap((word, i) => {
       const sp = D.createElement('span');
@@ -442,7 +528,7 @@
       pending.add(done);
     });
     const S = {
-      root, scene: $('.fx-scene'), $, fx,
+      root, scene: $('.fx-scene'), $, fx, stats: s,
       wait: waitFor,
       skipped: () => skipped,
       animate: (dur, fn) => new Promise(resolve => {
