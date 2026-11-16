@@ -175,6 +175,22 @@ static void days_to_ym(u32 days, int *year, int *month) {
 static u32 stepsProbe[2];  // sums of the first/last day of the history, for the diagnostics
 static u32 stepsHours;
 
+// Same request as libctru's PTMU_GetStepHistory, but declaring the buffer as hours * 2 bytes:
+// libctru declares `hours` bytes, half of what the service writes (one u16 per hour).
+static Result step_history(u32 hours, u16 *out) {
+    time_t raw = time(NULL);
+    s64 ms = (s64)difftime(raw, 0x386D4380) * 1000;  // since 2000-01-01
+    u32 *cmd = getThreadCommandBuffer();
+    cmd[0] = IPC_MakeHeader(0xB, 3, 2);
+    cmd[1] = hours;
+    cmd[2] = (u32)(ms & 0xFFFFFFFF);
+    cmd[3] = (u32)(ms >> 32);
+    cmd[4] = IPC_Desc_Buffer(hours * sizeof(u16), IPC_BUFFER_W);
+    cmd[5] = (u32)out;
+    Result r = svcSendSyncRequest(*ptmuGetSessionHandle());
+    return R_FAILED(r) ? r : (Result)cmd[1];
+}
+
 static void read_steps(void) {
     if (R_FAILED(ptmuInit())) return;
     if (R_SUCCEEDED(PTMU_GetTotalStepCount(&stepsTotal))) stepsOk = true;
@@ -184,7 +200,7 @@ static void read_steps(void) {
         u32 hours = tries[k];
         u16 *hist = calloc(hours, sizeof(u16));
         if (!hist) continue;
-        if (R_SUCCEEDED(PTMU_GetStepHistory(hours, hist))) {
+        if (R_SUCCEEDED(step_history(hours, hist))) {
             time_t now = time(NULL);  // console clock, local time
             for (u32 i = 0; i < hours; i++) {
                 if (!hist[i]) continue;
