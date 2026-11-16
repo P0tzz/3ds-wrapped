@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3DS Wrapped</title>
+  <meta name="description" content="Tu año en la 3DS, resumido: juegos más jugados, horas, rachas y una tarjeta para compartir.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="console" aria-hidden="true">
+      <div class="screen top"><span>★</span></div>
+      <div class="hinge"></div>
+      <div class="screen bottom"></div>
+    </div>
+    <h1>3DS <span>Wrapped</span></h1>
+    <p class="tagline">Tu año en la consola de doble pantalla, resumido.</p>
+  </header>
+
+  <main>
+    <!-- Carga de datos -->
+    <section id="upload" class="card">
+      <h2>Carga tus datos</h2>
+      <label id="dropzone" class="dropzone">
+        <input type="file" id="file" accept=".json,.csv,.dat" hidden>
+        <strong>Arrastra tu archivo aquí</strong>
+        <span>o haz clic para elegirlo</span>
+        <small>Formatos: JSON y CSV · <code>pld.dat</code> en desarrollo</small>
+      </label>
+      <div class="or"><span>o</span></div>
+      <button id="demo" class="btn">Probar con datos de ejemplo</button>
+      <p id="error" class="error" role="alert" hidden></p>
+      <p class="privacy">🔒 Todo se procesa en tu navegador. Tus datos no se suben a ningún sitio.</p>
+    </section>
+
+    <!-- Resultados -->
+    <section id="results" hidden>
+      <div class="toolbar">
+        <label>Año
+          <select id="year"></select>
+        </label>
+        <button id="reset" class="btn ghost">Cargar otro archivo</button>
+      </div>
+
+      <div id="big-numbers" class="stats-grid"></div>
+
+      <div class="card">
+        <h2>Tus juegos más jugados</h2>
+        <div class="chart-box tall"><canvas id="chart-top"></canvas></div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2>Horas por mes</h2>
+          <div class="chart-box"><canvas id="chart-month"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>¿A qué hora juegas?</h2>
+          <div class="chart-box"><canvas id="chart-hour"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tu año, día a día</h2>
+        <div class="heatmap-scroll"><div id="heatmap" class="heatmap"></div></div>
+        <div class="legend">
+          Menos <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> Más
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Momentos destacados</h2>
+        <div id="highlights" class="highlights"></div>
+      </div>
+
+      <div class="card share">
+        <h2>Tu tarjeta para compartir</h2>
+        <div id="share-card" class="share-card"></div>
+        <button id="download" class="btn">Descargar imagen</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Proyecto de fans sin relación con Nintendo. «Nintendo 3DS» es una marca registrada de Nintendo.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="js/sample-data.js"></script>
+  <script src="js/parsers.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

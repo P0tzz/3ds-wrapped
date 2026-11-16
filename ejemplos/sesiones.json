@@ -1,0 +1,12 @@
+{
+  "sesiones": [
+    { "juego": "Kart Galáctico", "inicio": "2025-01-02T18:30", "minutos": 45 },
+    { "juego": "Granja Feliz 3D", "inicio": "2025-01-03T10:00", "minutos": 20 },
+    { "juego": "Kart Galáctico", "inicio": "2025-01-04T21:15", "minutos": 60 },
+    { "juego": "Dragones de Bolsillo", "inicio": "2025-01-05T17:00", "minutos": 95 },
+    { "juego": "Dragones de Bolsillo", "inicio": "2025-01-06T22:40", "minutos": 120 },
+    { "juego": "Puzle Cúbico", "inicio": "2025-02-10T08:05", "minutos": 15 },
+    { "juego": "Dragones de Bolsillo", "inicio": "2025-02-14T23:30", "minutos": 80 },
+    { "juego": "Aventura Pixel", "inicio": "2025-03-01T16:20", "minutos": 50 }
+  ]
+}

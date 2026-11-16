@@ -1,0 +1,9 @@
+# Tus datos personales: no los subas por error
+*.dat
+mis-datos*
+
+# Sistema
+.DS_Store
+Thumbs.db
+.vscode/
+node_modules/
