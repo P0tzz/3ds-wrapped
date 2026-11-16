@@ -46,8 +46,9 @@ PRs bienvenidos.
 - [HarshNarayanJha/3DS-ActivityLog](https://github.com/HarshNarayanJha/3DS-ActivityLog) por documentar el formato de `pld.dat`
 - [hax0kartik/3dsdb](https://github.com/hax0kartik/3dsdb) para los nombres de los juegos
 - [3dbrew](https://www.3dbrew.org/)
+- [GameTDB](https://www.gametdb.com/) para las portadas (se cargan desde su web, no están en el repo)
 - [html2canvas](https://html2canvas.hertzen.com/)
-- [IBM Plex](https://github.com/IBM/plex)
+- Fuente [Dosis](https://fonts.google.com/specimen/Dosis)
 
 ## Licencia
 

@@ -1,8 +1,12 @@
 (function () {
   const $ = sel => document.querySelector(sel);
   const MONTHS = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-  const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+  // box art from GameTDB, by product code ("AMKE"); the last letter is the region
+  const COVER_URL = 'https://art.gametdb.com/3ds/box/';
+  const REGION_DIRS = { E: ['US', 'EN'], P: ['EN', 'US'], J: ['JA'], K: ['KO'], A: ['US', 'EN', 'JA'] };
 
   let sessions = [];
 
@@ -19,6 +23,33 @@
     }
     for (const c of [].concat(children)) if (c != null) node.append(c);
     return node;
+  }
+
+  function initials(name) {
+    const words = name.replace(/[^\p{L}\p{N} ]/gu, ' ').split(/\s+/).filter(w => w.length > 2 || /\d/.test(w));
+    return (words.slice(0, 2).map(w => w[0]).join('') || name.slice(0, 2)).toUpperCase();
+  }
+
+  function coverUrls(code) {
+    if (!code) return [];
+    const dirs = REGION_DIRS[code[3]] || ['US', 'EN', 'JA'];
+    return [...new Set([...dirs, 'US', 'EN', 'JA'])].map(d => `${COVER_URL}${d}/${code}.png`);
+  }
+
+  // <img> that walks through the region folders and ends in a placeholder
+  function cover(game) {
+    const urls = coverUrls(game.code);
+    const ph = () => el('div', { class: 'cover-ph', text: initials(game.game) });
+    if (!urls.length) return ph();
+    const img = el('img', { class: 'cover', alt: game.game, loading: 'lazy', referrerpolicy: 'no-referrer' });
+    let i = 0;
+    img.onerror = () => {
+      i++;
+      if (i < urls.length) img.src = urls[i];
+      else img.replaceWith(ph());
+    };
+    img.src = urls[0];
+    return img;
   }
 
   function showError(msg) {
@@ -73,36 +104,63 @@
   }
 
   function renderStats(s) {
-    renderTotals(s);
-    renderTop(s);
+    renderHero(s);
+    renderTiles(s);
+    renderLibrary(s);
     renderCols($('#months'), s.byMonth, MONTHS, i => `${MONTHS_LONG[i]}: ${hours(s.byMonth[i])} h`);
-    renderCols($('#hours'), s.byHour, s.byHour.map((_, h) => (h % 6 === 0 ? String(h) : '')), h => `${h}:00`);
+    renderCols($('#hours'), s.byHour, s.byHour.map((_, h) => (h % 6 === 0 ? `${h}h` : '')), h => `${h}:00`);
     renderHeatmap(s);
     renderFacts(s);
-    renderTicket(s);
+    renderShareCard(s);
   }
 
-  function renderTotals(s) {
+  function renderHero(s) {
+    const g = s.games[0];
+    const hero = $('#hero');
+    if (!g) { hero.replaceChildren(); return; }
+    const bg = el('div', { class: 'hero-bg' });
+    const url = coverUrls(g.code)[0];
+    if (url) bg.style.backgroundImage = `url("${url}")`;
+    hero.replaceChildren(
+      bg,
+      el('div', { class: 'hero-in' }, [
+        cover(g),
+        el('div', {}, [
+          el('div', { class: 'hero-label', text: `Tu juego de ${s.year}` }),
+          el('h2', { text: g.game }),
+          el('div', { class: 'hero-stats' }, [
+            el('div', {}, [el('b', { text: `${hours(g.minutes)} h` }), el('span', { text: 'jugadas' })]),
+            el('div', {}, [el('b', { text: g.sessions }), el('span', { text: 'partidas' })]),
+            el('div', {}, [el('b', { text: `${Math.round((g.minutes / Math.max(1, s.totalMinutes)) * 100)}%` }), el('span', { text: 'de tu tiempo' })]),
+          ]),
+        ]),
+      ])
+    );
+  }
+
+  function renderTiles(s) {
     const items = [
-      ['Horas', hours(s.totalMinutes)],
-      ['Juegos', s.gameCount],
-      ['Días', s.daysPlayed, ` /${new Date(s.year, 1, 29).getMonth() === 1 ? 366 : 365}`],
-      ['Partidas', s.sessionCount],
+      [`${hours(s.totalMinutes)} h`, 'en total'],
+      [s.gameCount, 'juegos'],
+      [s.daysPlayed, 'días jugando'],
+      [s.sessionCount, 'partidas'],
     ];
-    $('#big-numbers').replaceChildren(...items.map(([label, value, extra]) =>
-      el('div', {}, [el('dt', { text: label }), el('dd', {}, [String(value), extra ? el('small', { text: extra }) : null])])
+    $('#big-numbers').replaceChildren(...items.map(([v, l]) =>
+      el('div', { class: 'tile' }, [el('b', { text: v }), el('span', { text: l })])
     ));
   }
 
-  function renderTop(s) {
+  function renderLibrary(s) {
     const top = s.games.slice(0, 10);
     const max = top.length ? top[0].minutes : 1;
     $('#top').replaceChildren(...top.map((g, i) =>
-      el('li', {}, [
-        el('span', { class: 'rank', text: String(i + 1).padStart(2, '0') }),
-        el('span', { class: 'name', text: g.game, title: g.game }),
-        el('span', { class: 'val', text: `${hours(g.minutes)} h` }),
-        el('span', { class: 'bar' }, el('i', { style: `width:${(g.minutes / max) * 100}%` })),
+      el('div', { class: 'game', title: g.game }, [
+        el('div', { class: 'art' }, [cover(g), el('span', { class: 'rank', text: i + 1 })]),
+        el('div', { class: 'meta' }, [
+          el('div', { class: 'name', text: g.game }),
+          el('div', { class: 'hours' }, [`${hours(g.minutes)} h`, el('small', { text: `${g.sessions} partidas` })]),
+          el('div', { class: 'bar' }, el('i', { style: `width:${(g.minutes / max) * 100}%` })),
+        ]),
       ])
     ));
   }
@@ -139,58 +197,49 @@
 
   function renderFacts(s) {
     const items = [];
-    const add = (label, value, note) =>
-      items.push(el('div', {}, [el('dt', { text: label }), el('dd', {}, [value, note ? el('small', { text: note }) : null])]));
+    const add = (visual, label, value, note) =>
+      items.push(el('div', { class: 'fact' }, [
+        visual,
+        el('div', {}, [
+          el('div', { class: 'label', text: label }),
+          el('div', { class: 'value', text: value }),
+          note ? el('div', { class: 'note', text: note }) : null,
+        ]),
+      ]));
+    const thumb = g => el('div', { class: 'thumb' }, cover(g));
+    const badge = t => el('div', { class: 'badge', text: t });
 
-    if (s.games[0]) add('Juego del año', s.games[0].game, `${hours(s.games[0].minutes)} h en ${s.games[0].sessions} partidas`);
-    add('Perfil', s.personality.name, s.personality.desc);
-    if (s.streak.length) add('Racha más larga', `${s.streak.length} días seguidos`, `del ${fmtDate(s.streak.from)} al ${fmtDate(s.streak.to)}`);
-    if (s.longestSession) add('Partida más larga', fmtDuration(s.longestSession.minutes), `${s.longestSession.game}, ${fmtDate(s.longestSession.start)}`);
-    if (s.bestDay) add('Día con más juego', fmtDate(s.bestDay.date), fmtDuration(s.bestDay.minutes));
-    add('Mes con más juego', MONTHS_LONG[s.bestMonth], `${hours(s.byMonth[s.bestMonth])} h`);
-    if (s.firstSession) add('Primer juego del año', s.firstSession.game, fmtDate(s.firstSession.start));
-    if (s.forgotten && s.games.length > 1) add('El olvidado', s.forgotten.game, `sin abrir desde el ${fmtDate(s.forgotten.last)}`);
+    add(badge(s.personality.peakHour + 'h'), 'Tu perfil', s.personality.name, s.personality.desc);
+    if (s.streak.length) add(badge(s.streak.length), 'Racha más larga', `${s.streak.length} días seguidos`, `del ${fmtDate(s.streak.from)} al ${fmtDate(s.streak.to)}`);
+    if (s.longestSession) add(thumb(s.longestSession), 'Partida más larga', fmtDuration(s.longestSession.minutes), `${s.longestSession.game}, ${fmtDate(s.longestSession.start)}`);
+    if (s.firstSession) add(thumb(s.firstSession), 'Primer juego del año', s.firstSession.game, fmtDate(s.firstSession.start));
+    if (s.bestDay) add(badge(s.bestDay.date.getDate()), 'Día con más juego', fmtDate(s.bestDay.date), fmtDuration(s.bestDay.minutes));
+    add(badge(MONTHS_SHORT[s.bestMonth]), 'Mes con más juego', MONTHS_LONG[s.bestMonth], `${hours(s.byMonth[s.bestMonth])} h`);
+    if (s.forgotten && s.games.length > 1) add(thumb(s.forgotten), 'El olvidado', s.forgotten.game, `sin abrir desde el ${fmtDate(s.forgotten.last)}`);
 
     $('#highlights').replaceChildren(...items);
   }
 
-  function weeklyTotals(s) {
-    const weeks = new Array(53).fill(0);
-    for (const [key, min] of s.byDay) {
-      const d = new Date(key + 'T12:00:00');
-      const doy = Math.floor((d - new Date(s.year, 0, 1)) / 864e5);
-      weeks[Math.min(52, Math.floor(doy / 7))] += min;
-    }
-    return weeks;
-  }
-
-  function renderTicket(s) {
-    const row = (a, b) => el('div', { class: 'row' }, [el('span', { text: a }), el('span', { text: b })]);
-    const weeks = weeklyTotals(s);
-    const wmax = Math.max(1, ...weeks);
-
+  function renderShareCard(s) {
     $('#share-card').replaceChildren(
-      row('3DS WRAPPED', String(s.year)),
-      el('div', { class: 'big' }, [hours(s.totalMinutes), el('small', { text: ' h' })]),
-      el('div', { text: 'jugadas este año' }),
-      el('hr'),
-      ...s.games.slice(0, 5).map((g, i) => row(`${String(i + 1).padStart(2, '0')} ${g.game}`, `${hours(g.minutes)} h`)),
-      el('hr'),
-      row('Juegos', String(s.gameCount)),
-      row('Días jugados', String(s.daysPlayed)),
-      row('Racha', `${s.streak.length} días`),
-      row('Perfil', s.personality.name),
-      el('hr'),
-      el('div', { class: 'strip' }, weeks.map(w => el('i', { style: `height:${(w / wmax) * 100}%` }))),
-      el('div', { class: 'foot', text: 'p0tzz.github.io/3ds-wrapped' })
+      el('div', { class: 'sc-top' }, [el('span', { text: '3DS Wrapped' }), el('span', { text: s.year })]),
+      el('div', { class: 'sc-hours' }, [hours(s.totalMinutes), el('small', { text: ' h' })]),
+      el('div', { class: 'sc-sub', text: `jugando a ${s.gameCount} juegos en ${s.daysPlayed} días` }),
+      el('ol', { class: 'sc-list' }, s.games.slice(0, 5).map((g, i) =>
+        el('li', {}, [el('b', { text: i + 1 }), el('span', { class: 't', text: g.game }), el('span', { text: `${hours(g.minutes)} h` })])
+      )),
+      el('div', { class: 'sc-tags' }, [
+        el('span', { text: s.personality.name }),
+        s.streak.length ? el('span', { text: `racha de ${s.streak.length} días` }) : null,
+      ]),
+      el('div', { class: 'sc-foot', text: 'p0tzz.github.io/3ds-wrapped' })
     );
-    $('#share-card').firstChild.classList.add('head');
   }
 
   async function downloadCard() {
     if (!window.html2canvas) return showError('No se pudo cargar html2canvas (¿sin conexión?).');
     await document.fonts.ready;
-    const canvas = await html2canvas($('#share-card'), { scale: 3, backgroundColor: '#fbfaf6' });
+    const canvas = await html2canvas($('#share-card'), { scale: 3, backgroundColor: null });
     el('a', { href: canvas.toDataURL('image/png'), download: `3ds-wrapped-${$('#year').value}.png` }).click();
   }
 

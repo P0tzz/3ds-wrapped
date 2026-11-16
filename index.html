@@ -4,79 +4,93 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>3DS Wrapped</title>
-  <meta name="description" content="Tu año en la 3DS en números: juegos más jugados, horas, rachas y una tarjeta para compartir.">
+  <meta name="description" content="Tu año en la 3DS: juegos más jugados, horas, rachas y una tarjeta para compartir.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header class="masthead wrap">
-    <p class="kicker">3DS Wrapped</p>
-    <h1>Tu año en la consola, en números.</h1>
-    <p class="lede">Escanea el QR de la <a href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew">app para 3DS</a> o carga el <code>pld.dat</code> del Registro de actividad.</p>
-  </header>
+  <nav class="topbar">
+    <div class="wrap topbar-in">
+      <a class="brand" href="./"><span class="dot"></span>3DS Wrapped</a>
+      <a class="pill ghost" href="https://github.com/P0tzz/3ds-wrapped">GitHub</a>
+    </div>
+  </nav>
 
   <main class="wrap">
     <section id="upload">
-      <label id="dropzone" class="drop">
-        <input type="file" id="file" accept=".json,.csv,.dat" hidden>
-        <span class="drop-title">Suelta el archivo aquí o <u>elígelo</u></span>
-        <span class="drop-hint">pld.dat · .json · .csv</span>
-      </label>
-      <p class="actions"><button id="demo" class="link">Ver un ejemplo</button></p>
-      <p id="status" class="status" role="status" hidden></p>
-      <p id="error" class="error" role="alert" hidden></p>
-      <p class="fine">Todo se procesa en tu navegador. No se sube nada.</p>
+      <header class="intro">
+        <p class="eyebrow">Tu año en la consola</p>
+        <h1>¿A qué has jugado este año?</h1>
+        <p class="sub">Escanea el QR de la <a href="https://github.com/P0tzz/3ds-wrapped/tree/main/homebrew">app para 3DS</a> o sube el <code>pld.dat</code> del Registro de actividad.</p>
+      </header>
+
+      <div class="panel upload-panel">
+        <label id="dropzone" class="drop">
+          <input type="file" id="file" accept=".json,.csv,.dat" hidden>
+          <span class="drop-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/></svg>
+          </span>
+          <strong>Arrastra tu archivo aquí</strong>
+          <span>o haz clic para elegirlo · pld.dat, .json, .csv</span>
+        </label>
+        <div class="upload-actions">
+          <button id="demo" class="pill">Ver un ejemplo</button>
+          <span class="fine">Todo se procesa en tu navegador.</span>
+        </div>
+        <p id="status" class="status" role="status" hidden></p>
+        <p id="error" class="error" role="alert" hidden></p>
+      </div>
     </section>
 
     <section id="results" hidden>
       <div class="toolbar">
         <label class="year">Año <select id="year"></select></label>
-        <button id="reset" class="link">Cargar otro archivo</button>
+        <button id="reset" class="pill ghost">Cargar otro</button>
       </div>
 
-      <dl id="big-numbers" class="totals"></dl>
+      <article id="hero" class="hero"></article>
 
-      <section class="block">
-        <h2><span>01</span>Más jugados</h2>
-        <ol id="top" class="ranking"></ol>
+      <div id="big-numbers" class="tiles"></div>
+
+      <section class="section">
+        <h2>Tu biblioteca</h2>
+        <div id="top" class="library"></div>
       </section>
 
-      <section class="block split">
-        <div>
-          <h2><span>02</span>Por mes</h2>
+      <section class="section split">
+        <div class="panel">
+          <h3>Por mes</h3>
           <div id="months" class="cols"></div>
         </div>
-        <div>
-          <h2><span>03</span>Por hora</h2>
+        <div class="panel">
+          <h3>Por hora del día</h3>
           <div id="hours" class="cols cols-24"></div>
         </div>
       </section>
 
-      <section class="block">
-        <h2><span>04</span>Día a día</h2>
+      <section class="section panel">
+        <h3>Día a día</h3>
         <div class="heatmap-scroll"><div id="heatmap" class="heatmap"></div></div>
-        <div class="legend">menos <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> más</div>
+        <div class="legend">Menos <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> Más</div>
       </section>
 
-      <section class="block">
-        <h2><span>05</span>Destacados</h2>
-        <dl id="highlights" class="facts"></dl>
+      <section class="section">
+        <h2>Destacados</h2>
+        <div id="highlights" class="facts"></div>
       </section>
 
-      <section class="block">
-        <h2><span>06</span>Compartir</h2>
-        <div class="share">
-          <div id="share-card" class="ticket"></div>
-          <button id="download" class="btn">Descargar PNG</button>
-        </div>
+      <section class="section share">
+        <h2>Compártelo</h2>
+        <div id="share-card" class="share-card"></div>
+        <button id="download" class="pill">Descargar imagen</button>
       </section>
     </section>
   </main>
 
   <footer class="wrap">
-    <a href="https://github.com/P0tzz/3ds-wrapped">Código en GitHub</a> · MIT · No afiliado a Nintendo.
+    Proyecto de fans, no afiliado a Nintendo. Portadas de <a href="https://www.gametdb.com/">GameTDB</a>.
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
