@@ -52,6 +52,9 @@ static void build(const Chunk *chunks, int n, u16 year) {
         int size = qrcodegen_getSize(qr) + 8;
         qrScale = TOP_H / size;
     }
+    // drawn once per change, redrawing every frame tears on a single buffer
+    draw_qr();
+    gfxFlushBuffers();
 }
 
 static void print_screen(const char *source, u16 *years, int nyears, int sel) {
@@ -105,9 +108,13 @@ int main(void) {
             printf("  El Registro de actividad est\xA0\n  vac\xA1o.\n");
         }
         printf("\n  Pulsa START para salir.");
+        draw_qr();
+        gfxFlushBuffers();
     } else {
-        sel = nyears - 1;  // latest year
+        // latest year, unless it has barely started
+        sel = nyears - 1;
         build(chunks, n, years[sel]);
+        if (sel > 0 && stats.daysPlayed < 7) build(chunks, n, years[--sel]);
         print_screen(source, years, nyears, sel);
     }
 
@@ -126,8 +133,6 @@ int main(void) {
             }
         }
 
-        draw_qr();
-        gfxFlushBuffers();
         gfxSwapBuffers();
         gspWaitForVBlank();
     }
