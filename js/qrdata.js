@@ -59,11 +59,13 @@
   async function toStats(p) {
     const ids = new Set(p.top.map(t => t.tid));
     if (p.sessions) { ids.add(p.longest.tid); ids.add(p.first.tid); }
-    const names = await TitleDB.names([...ids]);
+    const info = await TitleDB.info([...ids]);
+    const name = tid => info.get(tid).name;
+    const code = tid => info.get(tid).code;
     const date = (doy, hour = 12) => new Date(p.year, 0, 1 + doy, hour);
 
     const games = p.top.map(t => ({
-      game: names.get(t.tid), minutes: t.minutes, sessions: t.sessions, last: date(t.lastDoy),
+      game: name(t.tid), code: code(t.tid), minutes: t.minutes, sessions: t.sessions, last: date(t.lastDoy),
     }));
 
     const byDay = new Map();
@@ -94,8 +96,8 @@
       byDay,
       bestMonth: p.months.indexOf(Math.max(...p.months)),
       bestDay: p.best.minutes ? { date: date(p.best.doy), minutes: p.best.minutes } : null,
-      longestSession: p.sessions ? { game: names.get(p.longest.tid), minutes: p.longest.minutes, start: date(p.longest.doy, p.longest.hour) } : null,
-      firstSession: p.sessions ? { game: names.get(p.first.tid), start: date(p.first.doy, p.first.hour) } : null,
+      longestSession: p.sessions ? { game: name(p.longest.tid), code: code(p.longest.tid), minutes: p.longest.minutes, start: date(p.longest.doy, p.longest.hour) } : null,
+      firstSession: p.sessions ? { game: name(p.first.tid), code: code(p.first.tid), start: date(p.first.doy, p.first.hour) } : null,
       forgotten,
       streak: { length: p.streak.length, from: date(p.streak.from), to: date(p.streak.from + p.streak.length - 1) },
       personality: Stats.personality(byHour, played ? weekend / played : 0),

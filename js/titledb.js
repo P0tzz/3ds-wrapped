@@ -1,4 +1,4 @@
-// title id -> name, using the eShop lists from hax0kartik/3dsdb (fetched at runtime)
+// title id -> { name, code }, using the eShop lists from hax0kartik/3dsdb (fetched at runtime)
 (function (W) {
   const BASE = 'https://raw.githubusercontent.com/hax0kartik/3dsdb/master/jsons/';
   const REGIONS = ['US', 'GB', 'JP'];
@@ -7,10 +7,17 @@
 
   function clean(name) {
     return name
+      .replace(/<br\s*\/?>/gi, ' ')
       .replace(/\s+Update Ver\.?.*$/i, '')
       .replace(/[™®]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  // "CTR-P-AMKE" -> "AMKE"
+  function productCode(pc) {
+    const m = /-([A-Z0-9]{4})$/.exec(pc || '');
+    return m ? m[1] : null;
   }
 
   // keyed by the unique part of the id (low 32 bits), so base games and
@@ -28,21 +35,23 @@
         const id = t.TitleID.toUpperCase();
         const key = id.slice(8);
         const isBase = id.startsWith('00040000');
+        const code = productCode(t['Product Code']);
         const prev = map.get(key);
-        if (!prev || (isBase && !prev.isBase)) map.set(key, { name: clean(t.Name), isBase });
+        if (!prev || (isBase && !prev.isBase)) map.set(key, { name: clean(t.Name), code: code || (prev && prev.code), isBase });
+        else if (!prev.code && code) prev.code = code;
       }
     }
     cache = map;
     return map;
   }
 
-  async function names(titleIds) {
+  async function info(titleIds) {
     let map;
     try { map = await load(); } catch { map = new Map(); }
     const out = new Map();
     for (const id of titleIds) {
       const hit = map.get(id.slice(8));
-      out.set(id, hit ? hit.name : fallback(id));
+      out.set(id, hit ? { name: hit.name, code: hit.code || null } : { name: fallback(id), code: null });
     }
     return out;
   }
@@ -52,5 +61,5 @@
     return `Título ${id}`;
   }
 
-  W.TitleDB = { names };
+  W.TitleDB = { info };
 })(window);

@@ -122,8 +122,12 @@
 
   async function nameTitles(sessions) {
     const ids = [...new Set(sessions.map(s => s.titleId))];
-    const names = await TitleDB.names(ids);
-    for (const s of sessions) s.game = names.get(s.titleId);
+    const info = await TitleDB.info(ids);
+    for (const s of sessions) {
+      const t = info.get(s.titleId);
+      s.game = t.name;
+      s.code = t.code;
+    }
     return sessions;
   }
 
