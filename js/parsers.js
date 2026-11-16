@@ -60,18 +60,84 @@
     });
   }
 
-  // TODO: https://www.3dbrew.org/wiki/Activity_Log
-  function parsePld() {
-    throw new Error('pld.dat todavía no está soportado, usa JSON o CSV.');
+  // pld.dat (Activity Log system save)
+  // layout: 0x10 header | 50000 x 16B hourly log | 256 x 24B per-title summary
+  // https://github.com/HarshNarayanJha/3DS-ActivityLog/blob/main/docs/data-extraction/pld-structure.md
+  const PLD_SIZE = 806160;
+  const LOG_OFFSET = 0x10;
+  const LOG_ENTRIES = 50000;
+  const HOUR = 3600;
+
+  function hex64(view, off) {
+    const hi = view.getUint32(off + 4, true).toString(16).padStart(8, '0');
+    const lo = view.getUint32(off, true).toString(16).padStart(8, '0');
+    return (hi + lo).toUpperCase();
   }
 
-  async function parseFile(file) {
+  // timestamps count seconds since 2000-01-01 on the console's local clock
+  const fromEpoch2000 = secs => new Date(2000, 0, 1, 0, 0, secs);
+
+  function parsePld(buffer) {
+    if (buffer.byteLength !== PLD_SIZE) {
+      throw new Error(`Esto no parece un pld.dat (tamaño ${buffer.byteLength}, se esperaba ${PLD_SIZE}).`);
+    }
+    const view = new DataView(buffer);
+
+    const chunks = [];
+    for (let i = 0; i < LOG_ENTRIES; i++) {
+      const off = LOG_OFFSET + i * 16;
+      const titleId = hex64(view, off);
+      if (titleId === '0000000000000000' || titleId === 'FFFFFFFFFFFFFFFF') continue;
+      const ts = view.getUint32(off + 8, true);
+      const secs = view.getUint32(off + 12, true);
+      if (!secs || secs > HOUR) continue;
+      chunks.push({ titleId, ts, secs });
+    }
+    // it's a ring buffer, so entries aren't in order
+    chunks.sort((a, b) => a.ts - b.ts);
+
+    // the log is bucketed per hour; glue consecutive hours of the same title into one session
+    const sessions = [];
+    const open = new Map();
+    for (const c of chunks) {
+      const s = open.get(c.titleId);
+      if (s && c.ts === s.lastTs + HOUR) {
+        s.secs += c.secs;
+        s.lastTs = c.ts;
+        if (!s.merged) { s.startTs = s.startTs + HOUR - s.firstSecs; s.merged = true; }
+        continue;
+      }
+      const ns = { titleId: c.titleId, startTs: c.ts, lastTs: c.ts, secs: c.secs, firstSecs: c.secs, merged: false };
+      open.set(c.titleId, ns);
+      sessions.push(ns);
+    }
+
+    return sessions.map(s => ({
+      game: s.titleId,
+      titleId: s.titleId,
+      start: fromEpoch2000(s.startTs),
+      minutes: s.secs / 60,
+    }));
+  }
+
+  async function nameTitles(sessions) {
+    const ids = [...new Set(sessions.map(s => s.titleId))];
+    const names = await TitleDB.names(ids);
+    for (const s of sessions) s.game = names.get(s.titleId);
+    return sessions;
+  }
+
+  async function parseFile(file, onStatus = () => {}) {
     const name = file.name.toLowerCase();
     let sessions;
     if (name.endsWith('.json')) sessions = parseJSON(await file.text());
     else if (name.endsWith('.csv')) sessions = parseCSV(await file.text());
-    else if (name.endsWith('.dat')) sessions = parsePld(await file.arrayBuffer());
-    else throw new Error('Formato no reconocido. Usa un archivo .json o .csv.');
+    else if (name.endsWith('.dat')) {
+      sessions = parsePld(await file.arrayBuffer());
+      onStatus('Buscando los nombres de los juegos…');
+      await nameTitles(sessions);
+    }
+    else throw new Error('Formato no reconocido. Usa pld.dat, .json o .csv.');
 
     if (!sessions.length) throw new Error('El archivo no contiene ninguna sesión de juego.');
     return sessions;
